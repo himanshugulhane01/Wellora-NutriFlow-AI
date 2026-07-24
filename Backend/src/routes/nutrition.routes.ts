@@ -87,11 +87,11 @@ router.post('/log', async (req: AuthRequest, res: Response, next) => {
 router.delete('/log/:id', async (req: AuthRequest, res: Response, next) => {
   try {
     const log = await prisma.nutritionLog.findFirst({
-      where: { id: req.params.id, userId: req.user!.id },
+      where: { id: req.params.id as string, userId: req.user!.id },
     });
     if (!log) throw new AppError('Log not found', 404);
 
-    await prisma.nutritionLog.delete({ where: { id: req.params.id } });
+    await prisma.nutritionLog.delete({ where: { id: req.params.id as string } });
     res.json({ success: true, message: 'Log deleted' });
   } catch (err) {
     next(err);

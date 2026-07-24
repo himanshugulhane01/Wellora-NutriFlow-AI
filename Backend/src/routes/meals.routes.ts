@@ -45,7 +45,7 @@ router.get('/', async (req: Request, res: Response, next) => {
 router.get('/:id', async (req: Request, res: Response, next) => {
   try {
     const meal = await prisma.meal.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: {
         restaurant: true,
       },
@@ -79,7 +79,7 @@ router.get('/restaurants/list', async (_req: Request, res: Response, next) => {
 router.get('/restaurants/:id', async (req: Request, res: Response, next) => {
   try {
     const restaurant = await prisma.restaurant.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: {
         meals: { where: { isAvailable: true } },
       },

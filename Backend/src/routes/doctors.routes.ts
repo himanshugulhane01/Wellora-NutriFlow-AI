@@ -28,7 +28,7 @@ router.get('/', async (req: Request, res: Response, next) => {
 // GET /api/doctors/:id
 router.get('/:id', async (req: Request, res: Response, next) => {
   try {
-    const doctor = await prisma.doctor.findUnique({ where: { id: req.params.id } });
+    const doctor = await prisma.doctor.findUnique({ where: { id: req.params.id as string } });
     if (!doctor) throw new AppError('Doctor not found', 404);
     res.json({ success: true, data: doctor });
   } catch (err) {

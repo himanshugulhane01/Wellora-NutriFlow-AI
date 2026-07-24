@@ -85,7 +85,7 @@ router.get('/', async (req: AuthRequest, res: Response, next) => {
 router.get('/:id', async (req: AuthRequest, res: Response, next) => {
   try {
     const order = await prisma.order.findFirst({
-      where: { id: req.params.id, userId: req.user!.id },
+      where: { id: req.params.id as string, userId: req.user!.id },
       include: {
         items: { include: { meal: true } },
         restaurant: true,
@@ -106,7 +106,7 @@ router.patch('/:id/status', async (req: AuthRequest, res: Response, next) => {
     const { status, message } = req.body as { status: string; message: string };
 
     const order = await prisma.order.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         status: status as any,
         tracking: {

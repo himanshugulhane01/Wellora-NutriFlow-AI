@@ -59,6 +59,7 @@ export interface Meal {
   preparation: string;
   isNutritionVerified: boolean;
   isVeg?: boolean;
+  aiHealthTag?: string;
   dietaryBadges: string[];
 }
 

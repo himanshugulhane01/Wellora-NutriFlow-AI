@@ -111,7 +111,7 @@ router.patch('/slots/:slotId', async (req: AuthRequest, res: Response, next) => 
     const { mealId } = z.object({ mealId: z.string() }).parse(req.body);
 
     const slot = await prisma.mealSlot.update({
-      where: { id: req.params.slotId },
+      where: { id: req.params.slotId as string },
       data: { mealId },
       include: { meal: true },
     });

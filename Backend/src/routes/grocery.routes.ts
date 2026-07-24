@@ -39,7 +39,7 @@ router.get('/products', async (req: Request, res: Response, next) => {
 // GET /api/grocery/products/:id
 router.get('/products/:id', async (req: Request, res: Response, next) => {
   try {
-    const product = await prisma.groceryProduct.findUnique({ where: { id: req.params.id } });
+    const product = await prisma.groceryProduct.findUnique({ where: { id: req.params.id as string } });
     if (!product) throw new AppError('Product not found', 404);
     res.json({ success: true, data: product });
   } catch (err) {
