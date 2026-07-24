@@ -26,6 +26,12 @@ export const authService = {
   me: () =>
     api.get<{ success: boolean; data: User & { healthProfile: unknown } }>('/auth/me'),
 
+  sendOtp: (phone: string) =>
+    api.post<{ success: boolean; message: string; data: { phone: string; otp: string; expiresInSeconds: number } }>('/auth/send-otp', { phone }),
+
+  verifyOtp: (phone: string, otp: string) =>
+    api.post<{ success: boolean; message: string }>('/auth/verify-otp', { phone, otp }),
+
   logout: () => {
     localStorage.removeItem('nutriflow_token');
     localStorage.removeItem('nutriflow_user');

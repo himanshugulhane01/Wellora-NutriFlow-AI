@@ -21,7 +21,13 @@ const TRUST_BADGES = [
 ];
 
 export const HeroSection: React.FC = () => {
-  const { setCurrentView, setIsAIModalOpen, healthProfile, setIsAuthModalOpen, currentUser } = useApp();
+  const {
+    setIsAIModalOpen,
+    setIsAuthModalOpen,
+    setAuthModalDefaultMode,
+    isAuthenticated,
+    setCurrentView,
+  } = useApp();
   const [rotationIdx, setRotationIdx] = useState(0);
 
   useEffect(() => {
@@ -30,6 +36,24 @@ export const HeroSection: React.FC = () => {
   }, []);
 
   const currentHeadline = HEADLINE_ROTATIONS[rotationIdx];
+
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      setCurrentView('dashboard');
+    } else {
+      setAuthModalDefaultMode('signup');
+      setIsAuthModalOpen(true);
+    }
+  };
+
+  const handleSignIn = () => {
+    if (isAuthenticated) {
+      setCurrentView('dashboard');
+    } else {
+      setAuthModalDefaultMode('login');
+      setIsAuthModalOpen(true);
+    }
+  };
 
   return (
     <section className="relative pt-10 pb-24 overflow-hidden">
@@ -72,30 +96,30 @@ export const HeroSection: React.FC = () => {
             {/* CTA Buttons */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
               <button
-                onClick={() => setCurrentView('marketplace')}
+                id="hero-get-started-btn"
+                onClick={handleGetStarted}
                 className="group px-8 py-4 rounded-2xl bg-[#034B36] hover:bg-emerald-800 text-white font-extrabold text-sm shadow-xl shadow-emerald-900/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
               >
-                <span>Start Eating Healthy</span>
+                <span>{isAuthenticated ? 'Go to Dashboard' : 'Get Started Free'}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </button>
 
               <button
-                onClick={() => setIsAIModalOpen(true)}
+                id="hero-signin-btn"
+                onClick={handleSignIn}
                 className="px-7 py-4 rounded-2xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-extrabold text-sm border border-slate-200 dark:border-slate-800 shadow-md hover:border-emerald-500/60 hover:shadow-lg transition-all flex items-center gap-3"
               >
-                <Bot className="w-5 h-5 text-blue-500 animate-bounce" />
-                <span>Talk to NutriBot AI</span>
+                <Sparkles className="w-5 h-5 text-emerald-500" />
+                <span>{isAuthenticated ? 'Open Dashboard' : 'Sign In to Dashboard'}</span>
               </button>
 
-              {!currentUser && (
-                <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="px-6 py-4 rounded-2xl bg-amber-500/10 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 font-extrabold text-sm border border-amber-500/30 hover:border-amber-500/60 transition-all flex items-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Free Sign Up</span>
-                </button>
-              )}
+              <button
+                onClick={() => setIsAIModalOpen(true)}
+                className="px-6 py-4 rounded-2xl bg-blue-500/10 text-blue-700 dark:text-blue-400 font-extrabold text-sm border border-blue-500/30 hover:border-blue-500/60 transition-all flex items-center gap-2"
+              >
+                <Bot className="w-4 h-4 animate-bounce" />
+                <span>Try NutriBot AI</span>
+              </button>
             </div>
 
             {/* Trust Badges strip */}
@@ -120,7 +144,7 @@ export const HeroSection: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">Live AI Match • {healthProfile.fitnessGoal}</span>
+                    <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">Live AI Match • PCOS Relief</span>
                   </div>
                   <span className="px-3 py-1 rounded-full text-[10px] font-black bg-emerald-700 text-amber-400 border border-emerald-600/50">
                     98% Bio-Match

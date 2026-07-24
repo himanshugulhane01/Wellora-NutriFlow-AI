@@ -14,6 +14,7 @@ import groceryRoutes from './routes/grocery.routes';
 import doctorsRoutes from './routes/doctors.routes';
 import aiRoutes from './routes/ai.routes';
 import mealPlansRoutes from './routes/meal-plans.routes';
+import paymentRoutes from './routes/payment.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/grocery', groceryRoutes);
 app.use('/api/doctors', doctorsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/meal-plans', mealPlansRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {

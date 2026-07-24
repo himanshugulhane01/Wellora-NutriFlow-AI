@@ -3,8 +3,13 @@ import { useApp } from '../../context/AppContext';
 import { Check, Sparkles } from 'lucide-react';
 
 export const PricingSection: React.FC = () => {
-  const { setCurrentView } = useApp();
+  const { setIsAuthModalOpen, setAuthModalDefaultMode } = useApp();
   const [isAnnual, setIsAnnual] = useState(true);
+
+  const handlePlanCTA = () => {
+    setAuthModalDefaultMode('signup');
+    setIsAuthModalOpen(true);
+  };
 
   const plans = [
     {
@@ -144,7 +149,7 @@ export const PricingSection: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => setCurrentView('marketplace')}
+                  onClick={handlePlanCTA}
                   className={`w-full py-4 rounded-2xl font-bold text-sm transition-all ${
                     plan.highlight
                       ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25'

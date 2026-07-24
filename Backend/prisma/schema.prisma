@@ -55,6 +55,16 @@ model HealthProfile {
   activityLevel      String   @default("Moderate")
   dietaryPreference  String   @default("Vegetarian")
   bmi                Float?
+
+  // Vitals — entered manually or via biometric scanner
+  bloodPressureSystolic  Int?     // e.g. 120 mmHg
+  bloodPressureDiastolic Int?     // e.g. 80 mmHg
+  bloodSugarFasting      Float?   // mg/dL
+  cholesterolTotal       Float?   // mg/dL
+  heartRateBpm           Int?     // beats per minute
+  oxygenSaturation       Float?   // % SpO2
+  lastVitalScanAt        DateTime?
+
   updatedAt          DateTime @updatedAt
 }
 

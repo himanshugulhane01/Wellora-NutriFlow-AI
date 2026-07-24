@@ -100,6 +100,14 @@ export interface HealthProfile {
   dailyFatTarget: number;
   waterIntakeLiters: number;
   healthScore: number;
+  // Vitals — entered manually or via biometric scanner
+  bloodPressureSystolic?: number;   // e.g. 120 (normal) | 140+ (high)
+  bloodPressureDiastolic?: number;  // e.g. 80 (normal) | 90+ (high)
+  bloodSugarFasting?: number;       // mg/dL — 70-100 normal, 100-125 pre-diabetic, 126+ diabetic
+  cholesterolTotal?: number;        // mg/dL — <200 normal, 200-239 borderline, 240+ high
+  heartRateBpm?: number;            // bpm — 60-100 normal
+  oxygenSaturation?: number;        // % — 95-100 normal
+  lastVitalScanAt?: string;         // ISO timestamp of last biometric scan
 }
 
 export interface Doctor {

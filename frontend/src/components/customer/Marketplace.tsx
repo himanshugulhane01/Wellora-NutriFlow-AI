@@ -1,499 +1,583 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import type { CategoryFilter } from '../../types';
-import { MOCK_RESTAURANTS } from '../../data/mockData';
+import type { Meal } from '../../types';
 import {
-  Search,
-  Sparkles,
-  Star,
-  Clock,
-  Flame,
-  Plus,
-  Minus,
-  ShieldCheck,
-  Bike,
-  ChevronRight,
-  Tag,
-  Leaf,
-  Zap,
-  Heart,
-  Wheat,
-  Droplets,
-  TrendingUp,
-  ArrowLeft,
-  Info,
-  SlidersHorizontal,
-  Compass
+  Search, Star, Clock, Plus, Minus, ShieldCheck, Leaf,
+  Flame, Bike, SlidersHorizontal, X, Sparkles, Bot,
+  Pizza, Salad, Soup, CupSoda, Sandwich, Fish, Beef,
+  Wheat, Apple, Coffee, ChefHat, Filter, TrendingUp,
+  AlertTriangle, CheckCircle, Percent, ShieldAlert, Heart, Eye, EyeOff
 } from 'lucide-react';
+import { AIFoodWarningModal, analyzeFoodRisk } from './AIFoodWarningModal';
+import type { FoodRiskWarning } from './AIFoodWarningModal';
 
-// Categories with icons and colors
-const CATEGORIES: { label: CategoryFilter; icon: React.ElementType; color: string; bg: string }[] = [
-  { label: 'All', icon: Sparkles, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-600' },
-  { label: 'PCOS', icon: Heart, color: 'text-pink-600 dark:text-pink-400', bg: 'bg-pink-600' },
-  { label: 'Diabetes Friendly', icon: Droplets, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-600' },
-  { label: 'High Protein', icon: Zap, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-600' },
-  { label: 'Heart Healthy', icon: Heart, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-600' },
-  { label: 'Weight Loss', icon: TrendingUp, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-600' },
-  { label: 'Keto', icon: Flame, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-600' },
-  { label: 'Vegan', icon: Leaf, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-600' },
-  { label: 'Low Carb', icon: Wheat, color: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-600' },
+// ─── Food Category Chips (Zomato-Style) ───────────────────────────────────────
+
+interface FoodCategory {
+  id: string;
+  label: string;
+  emoji: string;
+  filterKeywords: string[];
+}
+
+const FOOD_CATEGORIES: FoodCategory[] = [
+  { id: 'all',       label: 'All Foods',    emoji: '🌟', filterKeywords: [] },
+  { id: 'healthy',   label: 'Healthy Bowls',emoji: '🥗', filterKeywords: ['healthy', 'salad', 'bowl', 'pcos', 'diabetic', 'low gi', 'keto', 'vegan'] },
+  { id: 'pizza',     label: 'Pizza',        emoji: '🍕', filterKeywords: ['pizza', 'italian', 'flatbread'] },
+  { id: 'burger',    label: 'Burgers',      emoji: '🍔', filterKeywords: ['burger', 'sandwich', 'wrap', 'falafel'] },
+  { id: 'biryani',   label: 'Biryani',      emoji: '🍛', filterKeywords: ['biryani', 'rice', 'pilaf', 'pulao', 'thali'] },
+  { id: 'chinese',   label: 'Chinese',      emoji: '🥡', filterKeywords: ['noodles', 'chinese', 'stir fry', 'fried rice', 'dumpling', 'momos'] },
+  { id: 'soup',      label: 'Soups',        emoji: '🍲', filterKeywords: ['soup', 'stew', 'broth', 'lentil'] },
+  { id: 'protein',   label: 'High Protein', emoji: '💪', filterKeywords: ['protein', 'paneer', 'egg', 'chicken', 'salmon', 'tofu'] },
+  { id: 'breakfast', label: 'Breakfast',    emoji: '🌅', filterKeywords: ['breakfast', 'oats', 'smoothie', 'toast', 'scramble', 'pancake'] },
+  { id: 'keto',      label: 'Keto',         emoji: '🥑', filterKeywords: ['keto', 'low carb', 'cauliflower', 'avocado', 'fat bomb'] },
+  { id: 'drinks',    label: 'Juices & Shakes', emoji: '🥤', filterKeywords: ['juice', 'smoothie', 'shake', 'drink', 'milk', 'lassi'] },
+  { id: 'snacks',    label: 'Snacks',       emoji: '🍘', filterKeywords: ['snack', 'energy ball', 'chia', 'pudding', 'bar'] },
+  { id: 'dessert',   label: 'Desserts',     emoji: '🍰', filterKeywords: ['cake', 'dessert', 'sweet', 'ice cream', 'kheer', 'gulab'] },
 ];
+
+// Food App Offer Banners
+const FOOD_OFFERS = [
+  { id: '1', title: '50% OFF Health Bowls', desc: 'Code: NUTRI50 · On all PCOS & Diabetic safe meals', bg: 'from-[#034B36] to-emerald-800', tag: 'HEALTH SPECIAL' },
+  { id: '2', title: 'Guilt-Free Low GI Pizzas', desc: 'Zero blood sugar spike · Made with almond & cauliflower crust', bg: 'from-amber-600 to-orange-700', tag: 'NEW CRAVING' },
+  { id: '3', title: '15-Min Express Delivery', desc: 'Hot & fresh from certified clinical kitchens near you', bg: 'from-blue-700 to-indigo-900', tag: 'SUPERFAST' },
+];
+
+// ─── Sort Options ─────────────────────────────────────────────────────────────
+type SortOption = 'ai-match' | 'rating' | 'price-low' | 'price-high' | 'prep-time';
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'ai-match',    label: 'AI Health Match Score' },
+  { value: 'rating',      label: 'Top Rated Dishes' },
+  { value: 'price-low',   label: 'Price: Low to High' },
+  { value: 'price-high',  label: 'Price: High to Low' },
+  { value: 'prep-time',   label: 'Fastest Delivery' },
+];
+
+// ─── Meal Card Component ──────────────────────────────────────────────────────
+interface MealCardProps {
+  meal: Meal;
+  qty: number;
+  onAdd: () => void;
+  onRemove: () => void;
+  onDetail: () => void;
+  healthRisk: FoodRiskWarning | null;
+}
+
+const MealCard: React.FC<MealCardProps> = ({ meal, qty, onAdd, onRemove, onDetail, healthRisk }) => {
+  const isRisky = !!healthRisk;
+  const isBlock = healthRisk?.level === 'block';
+
+  return (
+    <div className={`group bg-white dark:bg-[#0D1F17] rounded-3xl border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between ${isBlock ? 'border-red-500/50 dark:border-red-500/40 ring-1 ring-red-500/20' : isRisky ? 'border-orange-400/50 ring-1 ring-orange-400/20' : 'border-slate-200 dark:border-emerald-500/10'}`}>
+      
+      <div>
+        {/* Image & Badges */}
+        <div className="relative h-52 overflow-hidden cursor-pointer" onClick={onDetail}>
+          <img
+            src={meal.image}
+            alt={meal.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+
+          {/* Top Left Badges */}
+          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
+            {meal.isNutritionVerified && (
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-black text-emerald-800 shadow-md">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Clinical Verified
+              </span>
+            )}
+            {meal.aiMatchScore >= 90 && (
+              <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-600/90 backdrop-blur-md text-[10px] font-black text-white shadow-md">
+                <Sparkles className="w-3.5 h-3.5" /> {meal.aiMatchScore}% Bio-Match
+              </span>
+            )}
+          </div>
+
+          {/* Top Right Unhealthy Warning Badge */}
+          {isRisky && (
+            <div className={`absolute top-3 right-3 flex items-center gap-1 px-3 py-1 rounded-full backdrop-blur-md text-[10px] font-black shadow-xl animate-pulse
+              ${isBlock ? 'bg-red-600 text-white border border-white/30' : 'bg-orange-500 text-white border border-white/30'}`}>
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>{isBlock ? 'UNHEALTHY FOR YOU' : 'HEALTH CAUTION'}</span>
+            </div>
+          )}
+
+          {/* Bottom Overlay Info */}
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between text-white">
+            <div>
+              <p className="font-extrabold text-xs text-emerald-300 drop-shadow">{meal.restaurantName}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="flex items-center gap-1 bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded text-[10px] font-black">
+                  <Star className="w-3 h-3 fill-slate-950" /> {meal.rating}
+                </div>
+                <span className="text-[10px] text-slate-200">({meal.reviewCount}+ orders)</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold border border-white/10">
+              <Clock className="w-3 h-3 text-emerald-400" />
+              <span>{meal.prepTime}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Body */}
+        <div className="p-4 space-y-3">
+          
+          {/* Name & Veg Tag */}
+          <div className="flex items-start gap-2">
+            <div className={`mt-1 w-4 h-4 rounded-sm border-2 flex items-center justify-center shrink-0 ${meal.isVeg !== false ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' : 'border-red-600 bg-red-50 dark:bg-red-950/40'}`}>
+              <div className={`w-2 h-2 rounded-full ${meal.isVeg !== false ? 'bg-emerald-600' : 'bg-red-600'}`} />
+            </div>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white leading-snug cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors font-['Outfit']" onClick={onDetail}>
+              {meal.name}
+            </h3>
+          </div>
+
+          {/* HEALTH WARNING NOTIFICATION STRIP ON CARD */}
+          {isRisky && (
+            <div className={`p-2.5 rounded-xl border text-[11px] font-bold flex items-start gap-2 ${isBlock ? 'bg-red-500/10 border-red-500/25 text-red-700 dark:text-red-300' : 'bg-orange-500/10 border-orange-500/25 text-orange-700 dark:text-orange-300'}`}>
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-black block uppercase tracking-wider text-[9px]">{healthRisk.reason}</span>
+                <span className="text-[10px] leading-tight font-semibold block mt-0.5">{healthRisk.detail.slice(0, 85)}...</span>
+              </div>
+            </div>
+          )}
+
+          {/* Macros Bar */}
+          <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-xl text-center text-[10px]">
+            <div>
+              <span className="text-slate-400 font-semibold block">Calories</span>
+              <span className="font-black text-slate-900 dark:text-white">{meal.macros.calories} kcal</span>
+            </div>
+            <div>
+              <span className="text-slate-400 font-semibold block">Protein</span>
+              <span className="font-black text-blue-600 dark:text-blue-400">{meal.macros.protein}g</span>
+            </div>
+            <div>
+              <span className="text-slate-400 font-semibold block">Glycemic Index</span>
+              <span className="font-black text-emerald-600 dark:text-emerald-400">{meal.macros.glycemicIndex || 'GI 32'}</span>
+            </div>
+          </div>
+
+          {/* Dietary Badges */}
+          <div className="flex flex-wrap gap-1">
+            {meal.dietaryBadges.slice(0, 3).map(b => (
+              <span key={b} className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/15">
+                {b}
+              </span>
+            ))}
+          </div>
+
+        </div>
+      </div>
+
+      {/* Footer Price & Add Button */}
+      <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800/60 mt-2 flex items-center justify-between">
+        <div>
+          <span className="text-xl font-black text-slate-900 dark:text-white font-['Outfit']">₹{meal.price}</span>
+          <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+            <Bike className="w-3 h-3" />
+            <span>Free Express Delivery</span>
+          </div>
+        </div>
+
+        {qty === 0 ? (
+          <button
+            onClick={onAdd}
+            className={`flex items-center gap-1.5 px-5 py-2.5 rounded-2xl font-extrabold text-xs transition-all hover:scale-105 shadow-md ${
+              isBlock
+                ? 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20'
+                : isRisky
+                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+            }`}
+          >
+            {isRisky && <AlertTriangle className="w-3.5 h-3.5" />}
+            <Plus className="w-4 h-4" />
+            <span>{isBlock ? 'Warning' : 'ADD'}</span>
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 bg-emerald-600 text-white rounded-2xl p-1 shadow-md">
+            <button onClick={onRemove} className="w-7 h-7 rounded-xl flex items-center justify-center hover:bg-emerald-700 transition-colors">
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-xs font-black px-1">{qty}</span>
+            <button onClick={onAdd} className="w-7 h-7 rounded-xl flex items-center justify-center hover:bg-emerald-700 transition-colors">
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Marketplace Component ───────────────────────────────────────────────
 
 export const Marketplace: React.FC = () => {
   const {
-    activeCategory,
-    setActiveCategory,
-    searchQuery,
-    setSearchQuery,
+    searchQuery, setSearchQuery,
     setSelectedMealForDetail,
-    addToCart,
-    removeFromCart,
-    cart,
+    addToCart, removeFromCart, cart,
     setIsCartOpen,
     healthProfile,
-    meals
+    meals,
+    isLoadingMeals,
   } = useApp();
 
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
-  const [minMatchScore, setMinMatchScore] = useState<number>(85);
-  const [vegOnly, setVegOnly] = useState<boolean>(false);
+  const [activeCategoryId, setActiveCategoryId] = useState('all');
+  const [sortBy, setSortBy] = useState<SortOption>('ai-match');
+  const [vegOnly, setVegOnly] = useState(false);
+  const [hideUnhealthy, setHideUnhealthy] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const getCartQty = (mealId: string) => {
-    return cart.find(i => i.meal.id === mealId)?.quantity || 0;
-  };
+  // Warning modal & toast state
+  const [pendingMeal, setPendingMeal] = useState<Meal | null>(null);
+  const [activeWarning, setActiveWarning] = useState<FoodRiskWarning | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const getCartQty = (mealId: string) => cart.find(i => i.meal.id === mealId)?.quantity || 0;
   const totalCartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const totalCartPrice = cart.reduce((s, i) => s + i.meal.price * i.quantity, 0);
 
-  // Filter restaurants that have at least one meal matching current criteria
-  const matchingRestaurants = MOCK_RESTAURANTS.filter(restaurant => {
-    const hasSearchMatch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      restaurant.cuisine.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()));
-    return hasSearchMatch;
-  });
+  // Active Category object
+  const activeCategory = FOOD_CATEGORIES.find(c => c.id === activeCategoryId) || FOOD_CATEGORIES[0];
 
-  const selectedRestaurant = selectedRestaurantId
-    ? MOCK_RESTAURANTS.find(r => r.id === selectedRestaurantId)
-    : null;
+  // Compute risks for all meals based on user's health profile & vitals
+  const mealRisks = useMemo(() => {
+    const map = new Map<string, FoodRiskWarning | null>();
+    meals.forEach(meal => {
+      map.set(meal.id, analyzeFoodRisk(meal, healthProfile.diseases, {
+        bloodPressureSystolic:  healthProfile.bloodPressureSystolic,
+        bloodPressureDiastolic: healthProfile.bloodPressureDiastolic,
+        bloodSugarFasting:      healthProfile.bloodSugarFasting,
+        cholesterolTotal:       healthProfile.cholesterolTotal,
+        heartRateBpm:           healthProfile.heartRateBpm,
+      }));
+    });
+    return map;
+  }, [meals, healthProfile]);
 
-  // Filter meals
-  const filteredMeals = meals.filter(meal => {
-    const matchesSearch = meal.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      meal.restaurantName.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = activeCategory === 'All' || meal.categories.includes(activeCategory);
-    const matchesScore = meal.aiMatchScore >= minMatchScore;
-    const matchesRestaurant = !selectedRestaurantId || meal.restaurantId === selectedRestaurantId;
-    const matchesVeg = !vegOnly || meal.isNutritionVerified; // using isNutritionVerified or isVeg fallback
-    
-    return matchesSearch && matchesCategory && matchesScore && matchesRestaurant && matchesVeg;
-  });
+  // Filtered & Sorted meals
+  const filteredAndSorted = useMemo(() => {
+    let result = [...meals];
+
+    // Category filter
+    if (activeCategory.filterKeywords.length > 0) {
+      result = result.filter(meal => {
+        const haystack = `${meal.name} ${meal.restaurantName} ${meal.dietaryBadges.join(' ')} ${meal.categories.join(' ')} ${meal.aiExplanation}`.toLowerCase();
+        return activeCategory.filterKeywords.some(kw => haystack.includes(kw));
+      });
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(meal =>
+        meal.name.toLowerCase().includes(q) ||
+        meal.restaurantName.toLowerCase().includes(q) ||
+        meal.dietaryBadges.some(b => b.toLowerCase().includes(q))
+      );
+    }
+
+    // Veg filter
+    if (vegOnly) {
+      result = result.filter(meal => meal.isVeg !== false);
+    }
+
+    // Hide Unhealthy filter
+    if (hideUnhealthy) {
+      result = result.filter(meal => !mealRisks.get(meal.id));
+    }
+
+    // Sort
+    switch (sortBy) {
+      case 'rating':     result.sort((a, b) => b.rating - a.rating); break;
+      case 'price-low':  result.sort((a, b) => a.price - b.price); break;
+      case 'price-high': result.sort((a, b) => b.price - a.price); break;
+      case 'prep-time':  result.sort((a, b) => parseInt(a.prepTime) - parseInt(b.prepTime)); break;
+      default:           result.sort((a, b) => b.aiMatchScore - a.aiMatchScore); break;
+    }
+
+    return result;
+  }, [meals, activeCategoryId, searchQuery, vegOnly, hideUnhealthy, sortBy, mealRisks]);
+
+  // Healthy alternatives for warning modal
+  const getAlternatives = (blockedMeal: Meal): Meal[] =>
+    meals
+      .filter(m => m.id !== blockedMeal.id && !mealRisks.get(m.id))
+      .sort((a, b) => b.aiMatchScore - a.aiMatchScore)
+      .slice(0, 3);
+
+  // Handle Add to Cart
+  const handleAddToCart = (meal: Meal) => {
+    const risk = mealRisks.get(meal.id);
+    if (risk) {
+      setPendingMeal(meal);
+      setActiveWarning(risk);
+      setToastMessage(`⚠️ HEALTH NOTIFICATION: ${meal.name} is flagged for ${risk.reason}`);
+      setTimeout(() => setToastMessage(null), 5000);
+    } else {
+      addToCart(meal);
+    }
+  };
+
+  const handleWarningProceed = () => {
+    if (pendingMeal) addToCart(pendingMeal);
+    setPendingMeal(null);
+    setActiveWarning(null);
+  };
+
+  const handleWarningCancel = () => {
+    setPendingMeal(null);
+    setActiveWarning(null);
+  };
+
+  const handleSelectAlternative = (meal: Meal) => {
+    setPendingMeal(null);
+    setActiveWarning(null);
+    addToCart(meal);
+  };
+
+  const totalRiskyCount = Array.from(mealRisks.values()).filter(Boolean).length;
+  const userHasHealthDetails = !!(healthProfile.bloodPressureSystolic || healthProfile.bloodSugarFasting || healthProfile.diseases.length > 0);
 
   return (
-    <div className="min-h-screen bg-[#F4F7F5] dark:bg-[#07130F] text-slate-800 dark:text-slate-100 pb-32">
-      
-      {/* ── STICKY HEADER SEARCH BAR (Swiggy Style but Luxury Vibe) ── */}
-      <div className="sticky top-20 z-30 bg-white/95 dark:bg-[#0A1F18]/95 backdrop-blur-md border-b border-emerald-500/10 dark:border-emerald-500/20 shadow-sm py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Location / Search Selector */}
-          <div className="flex items-center gap-3 flex-1">
-            {selectedRestaurantId ? (
-              <button
-                onClick={() => setSelectedRestaurantId(null)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-500/20 transition-all"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>All Kitchens</span>
-              </button>
-            ) : (
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                <Compass className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Tech District • Block 4B</span>
-              </div>
-            )}
+    <div className="min-h-screen bg-[#F4F7F5] dark:bg-[#07130F] pb-24">
 
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search delicious meals, superfoods, active ingredients..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-emerald-600 dark:focus:border-emerald-500 focus:bg-white dark:focus:bg-slate-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500"
-              />
-            </div>
+      {/* ── TOP REAL-TIME HEALTH NOTIFICATION TOAST BANNER ── */}
+      {toastMessage && (
+        <div className="sticky top-16 z-50 bg-gradient-to-r from-red-600 to-orange-600 text-white px-4 py-2.5 text-xs font-bold flex items-center justify-between shadow-xl animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
+            <AlertTriangle className="w-4 h-4 shrink-0 animate-bounce" />
+            <span>{toastMessage}</span>
+          </div>
+          <button onClick={() => setToastMessage(null)} className="p-1 hover:bg-white/20 rounded">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ── SEARCH & FILTER HEADER BAR ── */}
+      <div className="sticky top-16 z-30 bg-white/95 dark:bg-[#091F17]/95 backdrop-blur-xl border-b border-slate-200/80 dark:border-emerald-500/10 px-4 lg:px-6 py-4 space-y-3 shadow-sm">
+        
+        {/* Search Row */}
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search dishes, restaurants, healthy bowls, pizza..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
-          {/* Clinical Glycemic & Macro Guards Control Panel */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-700 dark:text-slate-300 shadow-sm">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span>Min AI Bio-Match:</span>
-              <span className="font-extrabold text-emerald-600 dark:text-emerald-400">{minMatchScore}%</span>
-              <input
-                type="range"
-                min="70"
-                max="95"
-                value={minMatchScore}
-                onChange={(e) => setMinMatchScore(Number(e.target.value))}
-                className="w-16 sm:w-24 accent-emerald-600 dark:accent-emerald-400 cursor-pointer h-1 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none"
-              />
+          {/* Pure Veg Toggle */}
+          <button
+            onClick={() => setVegOnly(!vegOnly)}
+            className={`flex items-center gap-1.5 px-4 py-3 rounded-2xl border text-xs font-extrabold transition-all shrink-0 ${vegOnly ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
+          >
+            <Leaf className="w-4 h-4 text-emerald-500" />
+            <span className="hidden sm:inline">Pure Veg</span>
+          </button>
+
+          {/* Hide Unhealthy Switch */}
+          {userHasHealthDetails && (
+            <button
+              onClick={() => setHideUnhealthy(!hideUnhealthy)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-2xl border text-xs font-extrabold transition-all shrink-0 ${hideUnhealthy ? 'bg-red-600 text-white border-red-600 shadow-md' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20'}`}
+            >
+              {hideUnhealthy ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="hidden md:inline">{hideUnhealthy ? 'Showing Safe Only' : 'Hide Unhealthy for Me'}</span>
+            </button>
+          )}
+
+          {/* Filters Toggle */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`p-3 rounded-2xl border transition-all ${showFilters ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'}`}
+          >
+            <SlidersHorizontal className="w-4.5 h-4.5" />
+          </button>
+        </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="max-w-7xl mx-auto pt-2 pb-1 border-t border-slate-200/60 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-500">Sort Dishes:</span>
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as SortOption)}
+                className="text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 focus:outline-none"
+              >
+                {SORT_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs font-semibold text-slate-500">
+              Showing <strong className="text-emerald-600 dark:text-emerald-400">{filteredAndSorted.length}</strong> items
+            </p>
+          </div>
+        )}
+
+        {/* Zomato-Style Category Chips */}
+        <div className="max-w-7xl mx-auto flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {FOOD_CATEGORIES.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategoryId(cat.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl whitespace-nowrap text-xs font-extrabold transition-all shrink-0 ${
+                activeCategoryId === cat.id
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 scale-105'
+                  : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <span className="text-base">{cat.emoji}</span>
+              <span>{cat.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── MAIN CONTENT AREA ── */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 space-y-8">
+
+        {/* PROMO OFFER BANNERS (Zomato/Swiggy Style) */}
+        {activeCategoryId === 'all' && !searchQuery && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {FOOD_OFFERS.map(offer => (
+              <div key={offer.id} className={`p-5 rounded-3xl bg-gradient-to-r ${offer.bg} text-white shadow-xl flex flex-col justify-between space-y-3 relative overflow-hidden group`}>
+                <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform" />
+                <div>
+                  <span className="px-2.5 py-1 rounded-full bg-white/20 text-[9px] font-black tracking-wider uppercase border border-white/20">
+                    {offer.tag}
+                  </span>
+                  <h4 className="text-lg font-black mt-2 font-['Outfit']">{offer.title}</h4>
+                  <p className="text-xs text-white/80 mt-1 font-medium">{offer.desc}</p>
+                </div>
+                <div className="flex items-center gap-1 text-xs font-extrabold text-amber-300">
+                  <span>Order Now →</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* HEALTH GUARD NOTIFICATION BANNER */}
+        {userHasHealthDetails && totalRiskyCount > 0 && (
+          <div className="p-4 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  AI Health Guard Active • {healthProfile.diseases.join(', ') || 'Vitals Logged'}
+                </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                  NutriBot AI flagged <strong>{totalRiskyCount} items</strong> in the menu that conflict with your blood pressure/glycemic limits. Look for the ⚠️ warning badges.
+                </p>
+              </div>
             </div>
 
             <button
-              onClick={() => setVegOnly(!vegOnly)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold border transition-all ${
-                vegOnly
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-md'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-500/50'
-              }`}
+              onClick={() => setHideUnhealthy(!hideUnhealthy)}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-black shrink-0 transition-all ${hideUnhealthy ? 'bg-emerald-600 text-white' : 'bg-amber-600 hover:bg-amber-700 text-white'}`}
             >
-              <Leaf className="w-3.5 h-3.5" />
-              <span>Pure Veg</span>
+              {hideUnhealthy ? 'Show All Foods' : 'Hide Unhealthy Foods (1-Click)'}
+            </button>
+          </div>
+        )}
+
+        {/* SECTION TITLE */}
+        <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800 pb-3">
+          <div>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white font-['Outfit']">
+              {activeCategory.emoji} {activeCategory.label}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {filteredAndSorted.length} items available · Certified Clinical Kitchens
+            </p>
+          </div>
+        </div>
+
+        {/* FOOD ITEMS GRID */}
+        {isLoadingMeals ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array(8).fill(0).map((_, i) => (
+              <div key={i} className="bg-white dark:bg-[#0D1F17] rounded-3xl border border-slate-200 dark:border-slate-800 h-80 animate-pulse" />
+            ))}
+          </div>
+        ) : filteredAndSorted.length === 0 ? (
+          <div className="text-center py-20 bg-white dark:bg-[#0D1F17] rounded-3xl border border-slate-200 dark:border-slate-800 p-8 space-y-4">
+            <div className="text-5xl">🥗</div>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white font-['Outfit']">No items found</h3>
+            <p className="text-xs text-slate-400">Try clearing filters or switching food categories.</p>
+            <button onClick={() => { setActiveCategoryId('all'); setSearchQuery(''); setHideUnhealthy(false); }} className="px-5 py-2.5 rounded-2xl bg-emerald-600 text-white font-bold text-xs">
+              Reset All Filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredAndSorted.map(meal => (
+              <MealCard
+                key={meal.id}
+                meal={meal}
+                qty={getCartQty(meal.id)}
+                onAdd={() => handleAddToCart(meal)}
+                onRemove={() => removeFromCart(meal.id)}
+                onDetail={() => setSelectedMealForDetail(meal)}
+                healthRisk={mealRisks.get(meal.id) ?? null}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* STICKY CART BAR */}
+      {totalCartCount > 0 && (
+        <div className="fixed bottom-20 lg:bottom-4 left-4 right-4 z-40">
+          <div className="max-w-7xl mx-auto">
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="w-full flex items-center justify-between px-6 py-4 rounded-3xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-600 text-white shadow-2xl shadow-emerald-600/40 hover:scale-[1.01] transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-2xl bg-white/20 flex items-center justify-center font-black text-sm">{totalCartCount}</span>
+                <span className="font-extrabold text-sm">{totalCartCount} item{totalCartCount > 1 ? 's' : ''} added to cart</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-black text-base">₹{totalCartPrice}</span>
+                <span className="px-3 py-1.5 rounded-xl bg-white/20 text-xs font-black uppercase tracking-wider">View Cart →</span>
+              </div>
             </button>
           </div>
         </div>
+      )}
 
-        {/* ── HORIZONTAL CATEGORIES SLIDER ("What's on your mind?") ── */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 flex items-center gap-3 overflow-x-auto scrollbar-none">
-          {CATEGORIES.map(({ label, icon: Icon }) => {
-            const isActive = activeCategory === label;
-            return (
-              <button
-                key={label}
-                onClick={() => setActiveCategory(label)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap flex-shrink-0 transition-all border ${
-                  isActive
-                    ? 'bg-emerald-800 border-emerald-800 text-amber-400 shadow-lg shadow-emerald-950/20'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-emerald-500/40'
-                }`}
-              >
-                <Icon className="w-4 h-4 text-amber-500" />
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-
-        {/* ── CLINICAL BIOLOGICAL TARGET PROFILE BANNER ── */}
-        <div className="mb-8 rounded-3xl bg-gradient-to-r from-[#034B36] to-[#0A3025] text-white p-6 sm:p-8 relative overflow-hidden border border-emerald-500/20 shadow-xl">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>AI Clinical Calibration Match</span>
-              </div>
-              <h1 className="text-3xl font-extrabold tracking-tight font-['Outfit'] text-white">
-                Personalized NutriFlow Market
-              </h1>
-              <p className="text-xs text-emerald-200/90 max-w-2xl">
-                Matched with <span className="text-amber-400 font-bold">{healthProfile.name}</span>'s profile: <span className="font-bold underline">{healthProfile.diseases.join(', ')}</span>. Glycemic targets & macro index guards configured.
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-6 bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md">
-              <div className="text-center">
-                <div className="text-2xl font-black text-amber-400 font-['Outfit']">{healthProfile.dailyCalorieTarget}</div>
-                <div className="text-[10px] text-emerald-200/80 font-bold uppercase tracking-wider">kcal Limit</div>
-              </div>
-              <div className="h-10 w-px bg-white/10" />
-              <div className="text-center">
-                <div className="text-2xl font-black text-amber-400 font-['Outfit']">{healthProfile.dailyProteinTarget}g</div>
-                <div className="text-[10px] text-emerald-200/80 font-bold uppercase tracking-wider">Protein Target</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── VIEW 1: RESTAURANT DIRECTORY LIST (Swiggy Style) ── */}
-        {!selectedRestaurantId && (
-          <div className="space-y-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-extrabold tracking-tight font-['Outfit'] text-slate-900 dark:text-white flex items-center gap-2.5">
-                <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                <span>Verified Wellness Kitchens ({matchingRestaurants.length})</span>
-              </h2>
-              <span className="text-xs font-bold text-slate-400">Strict Bio-Verifications Active</span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {matchingRestaurants.map(r => (
-                <div
-                  key={r.id}
-                  onClick={() => setSelectedRestaurantId(r.id)}
-                  className="group cursor-pointer bg-white dark:bg-[#091F17] rounded-3xl border border-slate-200/80 dark:border-emerald-500/10 shadow-sm hover:shadow-xl hover:border-emerald-500/30 dark:hover:border-emerald-500/40 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                >
-                  <div>
-                    {/* Cover image */}
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={r.image}
-                        alt={r.name}
-                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
-                      
-                      {/* Wellness Match score */}
-                      <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-700 text-amber-400 text-[10px] font-black shadow-md border border-emerald-500/30">
-                        <Sparkles className="w-3 h-3" />
-                        <span>{r.aiHealthyScore}% Safe Score</span>
-                      </div>
-
-                      {/* Prominent Offer Ribbon */}
-                      {r.discountOffer && (
-                        <div className="absolute bottom-4 left-4 right-4 flex items-center gap-1.5 text-xs text-white bg-amber-500/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-amber-400/30 font-bold shadow-lg">
-                          <Tag className="w-4 h-4 text-white" />
-                          <span className="line-clamp-1">{r.discountOffer}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Metadata Content */}
-                    <div className="p-5 space-y-3">
-                      <div>
-                        <h3 className="font-extrabold text-lg text-slate-900 dark:text-white font-['Outfit'] line-clamp-1">
-                          {r.name}
-                        </h3>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 line-clamp-1 mt-0.5">
-                          {r.cuisine.join(', ')}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400 pt-1">
-                        <span className="flex items-center gap-1 text-amber-500">
-                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                          <span>{r.rating}</span>
-                        </span>
-                        <span className="text-slate-300 dark:text-slate-700">•</span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{r.deliveryTime}</span>
-                        </span>
-                        <span className="text-slate-300 dark:text-slate-700">•</span>
-                        <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                          <Bike className="w-3.5 h-3.5" />
-                          <span>Free Express</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Foot action */}
-                  <div className="px-5 py-4 bg-slate-50 dark:bg-emerald-950/20 border-t border-slate-100 dark:border-emerald-500/10 flex items-center justify-between text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                    <span>View Menu Items</span>
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── VIEW 2: RESTAURANT MENU VIEW (Swiggy layout but luxury botanical theme) ── */}
-        {selectedRestaurantId && selectedRestaurant && (
-          <div className="space-y-8">
-            {/* Restaurant Detail Header Banner */}
-            <div className="bg-white dark:bg-[#091F17] rounded-3xl p-6 border border-slate-200/80 dark:border-emerald-500/20 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
-              <div className="flex items-center gap-5">
-                <img
-                  src={selectedRestaurant.image}
-                  alt={selectedRestaurant.name}
-                  className="w-24 h-24 rounded-2xl object-cover border border-slate-200 dark:border-emerald-500/20"
-                />
-                <div className="space-y-1">
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white font-['Outfit']">
-                    {selectedRestaurant.name}
-                  </h2>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    {selectedRestaurant.cuisine.join(', ')} • {selectedRestaurant.distance}
-                  </p>
-                  
-                  {/* Score badge */}
-                  <div className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>AI Glycemic Rating: {selectedRestaurant.aiHealthyScore}% Safe</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick stats panel */}
-              <div className="flex items-center gap-4 bg-slate-50 dark:bg-emerald-950/30 p-4 rounded-2xl border border-slate-100 dark:border-emerald-500/10">
-                <div className="text-center px-2">
-                  <div className="flex items-center justify-center gap-0.5 text-amber-500 font-extrabold text-sm">
-                    <Star className="w-4 h-4 fill-amber-500" />
-                    <span>{selectedRestaurant.rating}</span>
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Rating</div>
-                </div>
-                <div className="w-px h-8 bg-slate-200 dark:bg-slate-700" />
-                <div className="text-center px-2">
-                  <div className="text-slate-900 dark:text-white font-extrabold text-sm">
-                    {selectedRestaurant.deliveryTime}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">Speed</div>
-                </div>
-                <div className="w-px h-8 bg-slate-200 dark:bg-slate-700" />
-                <div className="text-center px-2">
-                  <div className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm">
-                    ₹{selectedRestaurant.priceForTwo}
-                  </div>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">For Two</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Menu List Header */}
-            <div className="border-b border-slate-200 dark:border-emerald-500/20 pb-4 flex items-center justify-between">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white font-['Outfit']">
-                Recommended Menu ({filteredMeals.length})
-              </h3>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400">Sorting: Match Score</span>
-              </div>
-            </div>
-
-            {/* Dishes list — Swiggy Row Style with a Premium, Luxury Dark Vibe */}
-            <div className="space-y-6">
-              {filteredMeals.map(meal => {
-                const qty = getCartQty(meal.id);
-                return (
-                  <div
-                    key={meal.id}
-                    className="bg-white dark:bg-[#091F17] rounded-3xl p-5 border border-slate-200/80 dark:border-emerald-500/10 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6"
-                  >
-                    
-                    {/* Left: Detail description */}
-                    <div className="flex-1 space-y-3 min-w-0">
-                      
-                      {/* Veg indicator & match score tag */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Swiggy style Veg dot */}
-                        <div className={`w-4 h-4 rounded-sm border flex items-center justify-center ${meal.isNutritionVerified ? 'border-green-600' : 'border-red-600'}`}>
-                          <div className={`w-2 h-2 rounded-full ${meal.isNutritionVerified ? 'bg-green-600' : 'bg-red-600'}`} />
-                        </div>
-
-                        {/* Match tag */}
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
-                          <Sparkles className="w-2.5 h-2.5" />
-                          <span>{meal.aiMatchScore}% Calibrated Match</span>
-                        </span>
-
-                        {meal.aiHealthTag && (
-                          <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-500/20">
-                            {meal.aiHealthTag}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Name & price */}
-                      <div>
-                        <h4 className="font-extrabold text-base text-slate-900 dark:text-white font-['Outfit'] hover:text-emerald-700 dark:hover:text-emerald-400 cursor-pointer transition-colors" onClick={() => setSelectedMealForDetail(meal)}>
-                          {meal.name}
-                        </h4>
-                        <div className="text-sm font-black text-slate-900 dark:text-white mt-0.5">
-                          ₹{meal.price}
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <p className="text-xs text-slate-400 dark:text-slate-500 line-clamp-2 max-w-2xl leading-relaxed">
-                        {meal.aiExplanation}
-                      </p>
-
-                      {/* Nutrition macro guard indicators */}
-                      <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-emerald-950/20 px-3 py-1.5 rounded-xl border border-slate-100 dark:border-emerald-500/10 w-fit">
-                        <span className="flex items-center gap-0.5 text-orange-500">
-                          <Flame className="w-3.5 h-3.5" />
-                          <span>{meal.macros.calories} kcal</span>
-                        </span>
-                        <span>•</span>
-                        <span className="text-emerald-600 dark:text-emerald-400">
-                          Protein: {meal.macros.protein}g
-                        </span>
-                        <span>•</span>
-                        <span className="text-blue-600 dark:text-blue-400">
-                          Low GI: {meal.macros.glycemicIndex}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Right: Dish Photo & Add button */}
-                    <div className="relative w-full sm:w-32 h-32 flex-shrink-0 flex items-center justify-center">
-                      <img
-                        src={meal.image}
-                        alt={meal.name}
-                        className="w-28 h-28 rounded-2xl object-cover shadow-md border border-slate-100 dark:border-emerald-500/25"
-                      />
-
-                      {/* Swiggy Style Add overlay button */}
-                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
-                        {qty === 0 ? (
-                          <button
-                            onClick={() => addToCart(meal)}
-                            className="px-6 py-2 rounded-xl bg-white dark:bg-[#07130F] text-emerald-700 dark:text-emerald-400 font-extrabold text-xs border border-emerald-500/30 hover:border-emerald-500 shadow-md hover:bg-slate-50 dark:hover:bg-slate-900 transition-all flex items-center gap-1"
-                          >
-                            <span>ADD</span>
-                            <Plus className="w-3 h-3 text-emerald-600" />
-                          </button>
-                        ) : (
-                          <div className="flex items-center bg-white dark:bg-[#07130F] border border-emerald-500/30 rounded-xl overflow-hidden shadow-md">
-                            <button
-                              onClick={() => removeFromCart(meal.id)}
-                              className="px-2.5 py-1.5 text-slate-500 hover:text-red-500 transition-colors"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="px-2 font-black text-xs text-emerald-700 dark:text-emerald-400">{qty}</span>
-                            <button
-                              onClick={() => addToCart(meal)}
-                              className="px-2.5 py-1.5 text-emerald-600 hover:text-emerald-500 transition-colors"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                  </div>
-                );
-              })}
-            </div>
-
-            {filteredMeals.length === 0 && (
-              <div className="text-center py-16 space-y-3 bg-white dark:bg-[#091F17] rounded-3xl border border-slate-200/80 dark:border-emerald-500/10">
-                <Info className="w-10 h-10 text-slate-400 mx-auto" />
-                <p className="font-bold text-slate-900 dark:text-white">No items match your active macro target filters</p>
-                <p className="text-xs text-slate-400">Try lower range match or clear category parameters</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── STICKY BOTTOM CART NOTIFICATION (Swiggy style checkout bar) ── */}
-      {totalCartCount > 0 && (
-        <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 md:w-96 z-40 animate-in slide-in-from-bottom-5">
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-gradient-to-r from-emerald-800 to-emerald-700 text-white shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform border border-emerald-500/20"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-xs font-black">
-                {totalCartCount}
-              </div>
-              <span className="font-extrabold text-xs tracking-wide">Basket Items • View Checkout</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-sm text-amber-400">₹{totalCartPrice}</span>
-              <ChevronRight className="w-4 h-4 text-white opacity-80" />
-            </div>
-          </button>
-        </div>
+      {/* AI FOOD WARNING MODAL */}
+      {activeWarning && pendingMeal && (
+        <AIFoodWarningModal
+          warning={activeWarning}
+          meal={pendingMeal}
+          alternatives={getAlternatives(pendingMeal)}
+          onProceed={handleWarningProceed}
+          onCancel={handleWarningCancel}
+          onSelectAlternative={handleSelectAlternative}
+        />
       )}
     </div>
   );

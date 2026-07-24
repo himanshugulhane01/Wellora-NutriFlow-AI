@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { BiometricScanner } from './BiometricScanner';
 import {
   Activity, Flame, Heart, Sparkles, Utensils,
   TrendingUp, TrendingDown, Bot, ChevronRight, Star, Clock, Plus,
@@ -15,20 +16,24 @@ export const UserDashboard: React.FC = () => {
 
   const getCartQty = (mealId: string) => cart.find(i => i.meal.id === mealId)?.quantity || 0;
 
-  const caloriesConsumed = 1650;
-  const caloriesTarget = 2200;
-  const caloriesPct = Math.round((caloriesConsumed / caloriesTarget) * 100);
-
-  const proteinConsumed = 82;
-  const proteinTarget = 120;
-  const fiberConsumed = 18;
+  // Derive targets from the actual user health profile
+  const caloriesTarget = healthProfile.dailyCalorieTarget || 2000;
+  const proteinTarget = healthProfile.dailyProteinTarget || Math.round(caloriesTarget * 0.3 / 4);
+  const carbsTarget = healthProfile.dailyCarbTarget || Math.round(caloriesTarget * 0.4 / 4);
+  const fatTarget = healthProfile.dailyFatTarget || Math.round(caloriesTarget * 0.3 / 9);
   const fiberTarget = 25;
-  const waterConsumed = 6;
-  const waterTarget = 8;
-  const carbsConsumed = 185;
-  const carbsTarget = 250;
-  const fatConsumed = 49;
-  const fatTarget = 65;
+  const waterTarget = Math.round(healthProfile.weightKg * 0.033);
+
+  // Today's consumed values — in a real app these would come from NutritionLog API
+  // For now, show partial progress (requires backend nutrition logging to be fully live)
+  const caloriesConsumed = Math.round(caloriesTarget * 0.72);
+  const proteinConsumed = Math.round(proteinTarget * 0.68);
+  const carbsConsumed = Math.round(carbsTarget * 0.74);
+  const fatConsumed = Math.round(fatTarget * 0.75);
+  const fiberConsumed = 18;
+  const waterConsumed = Math.round(waterTarget * 0.75);
+
+  const caloriesPct = Math.round((caloriesConsumed / caloriesTarget) * 100);
 
   const macros = [
     { label: 'Protein', consumed: proteinConsumed, target: proteinTarget, unit: 'g', bg: 'bg-blue-500', text: 'text-blue-500' },
@@ -135,7 +140,101 @@ export const UserDashboard: React.FC = () => {
       {/* ── MAIN CONTENT ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
-        {/* ── ROW 1: Calorie Ring + Macros ── */}
+        {/* ── ROW 0: Biometric Scanner + Vitals Summary ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Biometric Scanner */}
+          <div className="lg:col-span-1">
+            <BiometricScanner />
+          </div>
+
+          {/* Live Vitals Summary Card */}
+          <div className="lg:col-span-2 bg-white dark:bg-[#0A1F16] rounded-3xl border border-slate-200 dark:border-emerald-500/15 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-[#0A1F16] to-slate-900 px-5 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Live Health Vitals</p>
+                  <h3 className="text-base font-extrabold text-white font-['Outfit'] mt-0.5">Your Body Metrics Today</h3>
+                </div>
+                <button
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  Update Manually →
+                </button>
+              </div>
+            </div>
+            <div className="p-5">
+              {healthProfile.bloodPressureSystolic ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {/* BP */}
+                  <div className="p-4 rounded-2xl bg-red-500/5 dark:bg-red-500/10 border border-red-500/15 text-center">
+                    <Heart className="w-5 h-5 text-red-500 mx-auto mb-2" />
+                    <p className="text-xl font-black text-slate-900 dark:text-white font-['Outfit']">
+                      {healthProfile.bloodPressureSystolic}<span className="text-sm">/{healthProfile.bloodPressureDiastolic}</span>
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">BP mmHg</p>
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full mt-1 inline-block ${
+                      healthProfile.bloodPressureSystolic >= 140 ? 'bg-red-500/15 text-red-500' :
+                      healthProfile.bloodPressureSystolic >= 130 ? 'bg-orange-500/15 text-orange-500' :
+                      'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      {healthProfile.bloodPressureSystolic >= 140 ? 'High' : healthProfile.bloodPressureSystolic >= 130 ? 'Elevated' : 'Normal'}
+                    </span>
+                  </div>
+                  {/* Heart Rate */}
+                  {healthProfile.heartRateBpm && (
+                    <div className="p-4 rounded-2xl bg-pink-500/5 dark:bg-pink-500/10 border border-pink-500/15 text-center">
+                      <Activity className="w-5 h-5 text-pink-500 mx-auto mb-2" />
+                      <p className="text-xl font-black text-slate-900 dark:text-white font-['Outfit']">{healthProfile.heartRateBpm}<span className="text-xs"> bpm</span></p>
+                      <p className="text-[10px] text-slate-400 font-bold mt-0.5">Heart Rate</p>
+                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full mt-1 inline-block bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                        {healthProfile.heartRateBpm <= 100 && healthProfile.heartRateBpm >= 60 ? 'Normal' : 'Check'}
+                      </span>
+                    </div>
+                  )}
+                  {/* Blood Sugar */}
+                  {healthProfile.bloodSugarFasting && (
+                    <div className="p-4 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/15 text-center">
+                      <Zap className="w-5 h-5 text-blue-500 mx-auto mb-2" />
+                      <p className="text-xl font-black text-slate-900 dark:text-white font-['Outfit']">{healthProfile.bloodSugarFasting}<span className="text-xs"> mg/dL</span></p>
+                      <p className="text-[10px] text-slate-400 font-bold mt-0.5">Blood Sugar</p>
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-full mt-1 inline-block ${
+                        healthProfile.bloodSugarFasting >= 126 ? 'bg-red-500/15 text-red-500' :
+                        healthProfile.bloodSugarFasting >= 100 ? 'bg-orange-500/15 text-orange-500' :
+                        'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {healthProfile.bloodSugarFasting >= 126 ? 'Diabetic' : healthProfile.bloodSugarFasting >= 100 ? 'Pre-Diabetic' : 'Normal'}
+                      </span>
+                    </div>
+                  )}
+                  {/* SpO2 */}
+                  {healthProfile.oxygenSaturation && (
+                    <div className="p-4 rounded-2xl bg-cyan-500/5 dark:bg-cyan-500/10 border border-cyan-500/15 text-center">
+                      <TrendingUp className="w-5 h-5 text-cyan-500 mx-auto mb-2" />
+                      <p className="text-xl font-black text-slate-900 dark:text-white font-['Outfit']">{healthProfile.oxygenSaturation}<span className="text-xs">%</span></p>
+                      <p className="text-[10px] text-slate-400 font-bold mt-0.5">SpO2</p>
+                      <span className="text-[9px] font-black px-2 py-0.5 rounded-full mt-1 inline-block bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">Normal</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
+                  <div className="text-4xl">🔬</div>
+                  <div>
+                    <p className="text-sm font-extrabold text-slate-700 dark:text-slate-200">No vitals recorded yet</p>
+                    <p className="text-xs text-slate-400 mt-1">Use the BioScan™ scanner on the left to check your BP,<br />heart rate, and blood sugar instantly</p>
+                  </div>
+                  <p className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-xl">
+                    💡 Your vitals help NutriBot AI warn you about unsafe food choices
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
           {/* Calorie Ring */}

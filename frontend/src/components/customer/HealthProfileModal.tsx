@@ -5,7 +5,14 @@ import { X, User, Check } from 'lucide-react';
 export const HealthProfileModal: React.FC = () => {
   const { isProfileModalOpen, setIsProfileModalOpen, healthProfile, setHealthProfile } = useApp();
 
-  const [form, setForm] = useState({ ...healthProfile });
+  const [form, setForm] = useState({
+    ...healthProfile,
+    bloodPressureSystolic:  healthProfile.bloodPressureSystolic  || '',
+    bloodPressureDiastolic: healthProfile.bloodPressureDiastolic || '',
+    bloodSugarFasting:      healthProfile.bloodSugarFasting      || '',
+    cholesterolTotal:       healthProfile.cholesterolTotal       || '',
+    heartRateBpm:           healthProfile.heartRateBpm           || '',
+  });
 
   if (!isProfileModalOpen) return null;
 
@@ -30,7 +37,14 @@ export const HealthProfileModal: React.FC = () => {
   };
 
   const handleSave = () => {
-    setHealthProfile(form);
+    setHealthProfile({
+      ...form,
+      bloodPressureSystolic:  form.bloodPressureSystolic  ? Number(form.bloodPressureSystolic)  : undefined,
+      bloodPressureDiastolic: form.bloodPressureDiastolic ? Number(form.bloodPressureDiastolic) : undefined,
+      bloodSugarFasting:      form.bloodSugarFasting      ? Number(form.bloodSugarFasting)      : undefined,
+      cholesterolTotal:       form.cholesterolTotal       ? Number(form.cholesterolTotal)       : undefined,
+      heartRateBpm:           form.heartRateBpm           ? Number(form.heartRateBpm)           : undefined,
+    });
     setIsProfileModalOpen(false);
   };
 
@@ -153,6 +167,71 @@ export const HealthProfileModal: React.FC = () => {
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* ── VITALS SECTION ── */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+              <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider px-2">Health Vitals</span>
+              <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+            </div>
+            <div className="p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
+              💡 These vitals power the <strong>AI Food Guard</strong> — when your BP or sugar is high, NutriBot will warn you before adding unsafe foods to cart. You can also use the BioScan™ thumb scanner on the dashboard.
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase">BP Systolic (mmHg)</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 120"
+                  value={form.bloodPressureSystolic}
+                  onChange={(e) => setForm({ ...form, bloodPressureSystolic: e.target.value as any })}
+                  className="w-full mt-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase">BP Diastolic (mmHg)</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 80"
+                  value={form.bloodPressureDiastolic}
+                  onChange={(e) => setForm({ ...form, bloodPressureDiastolic: e.target.value as any })}
+                  className="w-full mt-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase">Blood Sugar (mg/dL)</label>
+                <input
+                  type="number"
+                  placeholder="Fasting, e.g. 92"
+                  value={form.bloodSugarFasting}
+                  onChange={(e) => setForm({ ...form, bloodSugarFasting: e.target.value as any })}
+                  className="w-full mt-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase">Cholesterol (mg/dL)</label>
+                <input
+                  type="number"
+                  placeholder="Total, e.g. 185"
+                  value={form.cholesterolTotal}
+                  onChange={(e) => setForm({ ...form, cholesterolTotal: e.target.value as any })}
+                  className="w-full mt-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase">Heart Rate (bpm)</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 72"
+                  value={form.heartRateBpm}
+                  onChange={(e) => setForm({ ...form, heartRateBpm: e.target.value as any })}
+                  className="w-full mt-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                />
+              </div>
             </div>
           </div>
 

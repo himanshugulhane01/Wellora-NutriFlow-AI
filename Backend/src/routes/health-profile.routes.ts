@@ -32,6 +32,14 @@ router.put('/', async (req: AuthRequest, res: Response, next) => {
       diseases: z.array(z.string()).optional(),
       activityLevel: z.string().optional(),
       dietaryPreference: z.string().optional(),
+      // Vitals
+      bloodPressureSystolic: z.number().int().min(60).max(250).optional().nullable(),
+      bloodPressureDiastolic: z.number().int().min(40).max(150).optional().nullable(),
+      bloodSugarFasting: z.number().min(30).max(600).optional().nullable(),
+      cholesterolTotal: z.number().min(50).max(600).optional().nullable(),
+      heartRateBpm: z.number().int().min(30).max(220).optional().nullable(),
+      oxygenSaturation: z.number().min(50).max(100).optional().nullable(),
+      lastVitalScanAt: z.string().datetime().optional().nullable(),
     });
 
     const body = schema.parse(req.body);
@@ -46,9 +54,24 @@ router.put('/', async (req: AuthRequest, res: Response, next) => {
     const profile = await prisma.healthProfile.upsert({
       where: { userId: req.user!.id },
       update: {
-        ...body,
-        diseases: body.diseases ? JSON.stringify(body.diseases) : undefined,
-        bmi,
+        ...(body.age !== undefined && { age: body.age }),
+        ...(body.heightCm !== undefined && { heightCm: body.heightCm }),
+        ...(body.weightKg !== undefined && { weightKg: body.weightKg }),
+        ...(body.targetWeightKg !== undefined && { targetWeightKg: body.targetWeightKg }),
+        ...(body.fitnessGoal !== undefined && { fitnessGoal: body.fitnessGoal }),
+        ...(body.dailyCalorieTarget !== undefined && { dailyCalorieTarget: body.dailyCalorieTarget }),
+        ...(body.diseases !== undefined && { diseases: JSON.stringify(body.diseases) }),
+        ...(body.activityLevel !== undefined && { activityLevel: body.activityLevel }),
+        ...(body.dietaryPreference !== undefined && { dietaryPreference: body.dietaryPreference }),
+        ...(bmi !== undefined && { bmi }),
+        // Vitals
+        ...(body.bloodPressureSystolic !== undefined && { bloodPressureSystolic: body.bloodPressureSystolic }),
+        ...(body.bloodPressureDiastolic !== undefined && { bloodPressureDiastolic: body.bloodPressureDiastolic }),
+        ...(body.bloodSugarFasting !== undefined && { bloodSugarFasting: body.bloodSugarFasting }),
+        ...(body.cholesterolTotal !== undefined && { cholesterolTotal: body.cholesterolTotal }),
+        ...(body.heartRateBpm !== undefined && { heartRateBpm: body.heartRateBpm }),
+        ...(body.oxygenSaturation !== undefined && { oxygenSaturation: body.oxygenSaturation }),
+        ...(body.lastVitalScanAt !== undefined && { lastVitalScanAt: body.lastVitalScanAt ? new Date(body.lastVitalScanAt) : null }),
       },
       create: {
         userId: req.user!.id,
@@ -60,6 +83,13 @@ router.put('/', async (req: AuthRequest, res: Response, next) => {
         dailyCalorieTarget: body.dailyCalorieTarget || 1800,
         diseases: JSON.stringify(body.diseases || []),
         bmi,
+        bloodPressureSystolic: body.bloodPressureSystolic || null,
+        bloodPressureDiastolic: body.bloodPressureDiastolic || null,
+        bloodSugarFasting: body.bloodSugarFasting || null,
+        cholesterolTotal: body.cholesterolTotal || null,
+        heartRateBpm: body.heartRateBpm || null,
+        oxygenSaturation: body.oxygenSaturation || null,
+        lastVitalScanAt: body.lastVitalScanAt ? new Date(body.lastVitalScanAt) : null,
       },
     });
 
