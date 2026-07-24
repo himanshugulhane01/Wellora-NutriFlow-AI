@@ -22,6 +22,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
     setIsCartOpen,
     setIsAIModalOpen,
     setIsProfileModalOpen,
+    openProfileModal,
     setIsOrderTrackingOpen,
     activeOrder,
     healthProfile,
@@ -77,7 +78,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
         {/* Health Score Chip */}
         {currentUser?.role === 'CUSTOMER' && (
           <button
-            onClick={() => setIsProfileModalOpen(true)}
+            onClick={() => openProfileModal('vitals')}
             className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/30 hover:border-emerald-500 transition-all text-xs font-bold text-emerald-700 dark:text-emerald-400"
           >
             <Activity className="w-3.5 h-3.5 text-emerald-500" />
@@ -140,7 +141,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
         {currentUser && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsProfileModalOpen(true)}
+              onClick={() => openProfileModal('account')}
               className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white font-black text-sm flex items-center justify-center shadow-md shadow-emerald-500/30 hover:scale-105 transition-transform uppercase"
               title={currentUser.name}
             >

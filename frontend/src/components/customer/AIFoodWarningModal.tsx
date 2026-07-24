@@ -52,9 +52,9 @@ export const analyzeFoodRisk = (
     if (isPizza || isBurger || isHighSalt || isFried) {
       return {
         level: systolic >= 140 ? 'block' : 'caution',
-        reason: 'High Blood Pressure Risk',
-        detail: `${meal.name} is high in sodium. For your elevated BP of ${systolic}/${diastolic ?? '?'} mmHg, high-sodium foods can cause further blood pressure spikes and increase cardiac risk.`,
-        metric: `Your BP: ${systolic}/${diastolic ?? '?'} mmHg (${systolic >= 140 ? 'Stage 2 Hypertension' : 'Elevated'})`,
+        reason: 'High Blood Pressure Alert',
+        detail: `Based on your scan today, your BP is elevated (${systolic}/${diastolic ?? '?'} mmHg). ${meal.name} is high in sodium (~980mg), which can spike blood pressure. Please avoid this today or swap to a low-sodium meal!`,
+        metric: `Today's Scanned BP: ${systolic}/${diastolic ?? '?'} mmHg (${systolic >= 140 ? 'High BP Alert' : 'Elevated BP'})`,
         icon: Heart,
         color: 'red',
       };

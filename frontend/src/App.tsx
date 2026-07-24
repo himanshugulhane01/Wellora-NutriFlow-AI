@@ -36,6 +36,7 @@ const MainContent: React.FC = () => {
     setIsAIModalOpen,
     setIsCartOpen,
     setIsProfileModalOpen,
+    openProfileModal,
     setIsAuthModalOpen,
     setAuthModalDefaultMode,
   } = useApp();
@@ -143,7 +144,7 @@ const MainContent: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setIsProfileModalOpen(true)}
+          onClick={() => openProfileModal('account')}
           className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400"
         >
           <User className="w-5 h-5" />

@@ -43,6 +43,9 @@ interface AppContextType {
   setIsAIModalOpen: (open: boolean) => void;
   isProfileModalOpen: boolean;
   setIsProfileModalOpen: (open: boolean) => void;
+  profileModalTab: 'account' | 'vitals';
+  setProfileModalTab: (tab: 'account' | 'vitals') => void;
+  openProfileModal: (tab?: 'account' | 'vitals') => void;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
   isOrderTrackingOpen: boolean;
@@ -92,6 +95,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [isAIModalOpen, setIsAIModalOpen] = useState<boolean>(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  const [profileModalTab, setProfileModalTab] = useState<'account' | 'vitals'>('account');
+  const openProfileModal = useCallback((tab: 'account' | 'vitals' = 'account') => {
+    setProfileModalTab(tab);
+    setIsProfileModalOpen(true);
+  }, []);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState<boolean>(false);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
@@ -489,6 +497,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsAIModalOpen,
         isProfileModalOpen,
         setIsProfileModalOpen,
+        profileModalTab,
+        setProfileModalTab,
+        openProfileModal,
         isCartOpen,
         setIsCartOpen,
         isOrderTrackingOpen,

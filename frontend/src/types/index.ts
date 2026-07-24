@@ -171,6 +171,15 @@ export interface AIChatMessage {
   voiceAudioUrl?: string;
 }
 
+export interface UserAddress {
+  id: string;
+  label: 'Home' | 'Work' | 'Gym' | 'Other';
+  addressLine: string;
+  city: string;
+  pincode: string;
+  isDefault?: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -178,4 +187,10 @@ export interface User {
   role: string;
   avatar?: string;
   phone?: string;
+  addresses?: UserAddress[];
+  defaultAddress?: string;
+  preferredPayment?: string;
+  dietaryPreference?: 'Vegetarian' | 'Non-Vegetarian' | 'Vegan' | 'Eggetarian';
+  nutriCashBalance?: number;
 }
+

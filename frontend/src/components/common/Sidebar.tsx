@@ -75,6 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     setCurrentView,
     setIsAIModalOpen,
     setIsProfileModalOpen,
+    openProfileModal,
     logout,
     currentUser,
   } = useApp();
@@ -171,7 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       {/* Footer: Profile, Settings, Logout */}
       <div className="space-y-1 pt-4 border-t border-slate-100 dark:border-emerald-500/10">
         <button
-          onClick={() => { setIsProfileModalOpen(true); if (onClose) onClose(); }}
+          onClick={() => { openProfileModal('account'); if (onClose) onClose(); }}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-emerald-950/20 hover:text-slate-900 dark:hover:text-white transition-all"
         >
           <User className="w-4 h-4 text-slate-400" />
@@ -179,7 +180,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         </button>
 
         <button
-          onClick={() => { setIsProfileModalOpen(true); if (onClose) onClose(); }}
+          onClick={() => { openProfileModal('account'); if (onClose) onClose(); }}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-emerald-950/20 hover:text-slate-900 dark:hover:text-white transition-all"
         >
           <Settings className="w-4 h-4 text-slate-400" />
