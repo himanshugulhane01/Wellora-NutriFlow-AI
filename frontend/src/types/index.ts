@@ -1,5 +1,6 @@
 export type PlatformView = 
   | 'landing'
+  | 'dashboard'
   | 'marketplace'
   | 'nutrition-dashboard'
   | 'meal-planner'
@@ -160,4 +161,13 @@ export interface AIChatMessage {
   mealRecommendation?: Meal;
   healthInsight?: string;
   voiceAudioUrl?: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+  phone?: string;
 }

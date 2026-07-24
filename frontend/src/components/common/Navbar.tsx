@@ -16,7 +16,10 @@ import {
   Bot,
   Calendar,
   Store,
-  Compass
+  Compass,
+  LogIn,
+  LogOut,
+  User
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -31,13 +34,17 @@ export const Navbar: React.FC = () => {
     setIsProfileModalOpen,
     setIsOrderTrackingOpen,
     activeOrder,
-    healthProfile
+    healthProfile,
+    currentUser,
+    setIsAuthModalOpen,
+    logout
   } = useApp();
 
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
 
   const viewLabels: Record<PlatformView, { label: string; icon: React.ElementType }> = {
     'landing': { label: 'Landing Page', icon: Compass },
+    'dashboard': { label: 'My Dashboard', icon: LayoutDashboard },
     'marketplace': { label: 'Customer Marketplace', icon: UtensilsCrossed },
     'nutrition-dashboard': { label: 'Nutrition Analytics', icon: Activity },
     'meal-planner': { label: 'AI Meal Planner', icon: Calendar },
@@ -192,6 +199,34 @@ export const Navbar: React.FC = () => {
           >
             {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
           </button>
+
+          {/* Authentication State Button */}
+          {currentUser ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsProfileModalOpen(true)}
+                className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-500/20"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span className="max-w-[80px] truncate">{currentUser.name}</span>
+              </button>
+              <button
+                onClick={logout}
+                className="p-2.5 rounded-2xl bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-105"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
         </div>
 
       </div>

@@ -7,7 +7,8 @@ import type {
   CartItem,
   Order,
   GroceryItem,
-  AIChatMessage
+  AIChatMessage,
+  User
 } from '../types';
 import {
   INITIAL_HEALTH_PROFILE,
@@ -54,6 +55,14 @@ interface AppContextType {
   addGroceryToCart: (item: GroceryItem) => void;
   meals: Meal[];
   isLoadingMeals: boolean;
+  
+  // Auth additions
+  currentUser: User | null;
+  setCurrentUser: (user: User | null) => void;
+  isAuthModalOpen: boolean;
+  setIsAuthModalOpen: (open: boolean) => void;
+  logout: () => void;
+  syncUserData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -74,6 +83,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState<boolean>(false);
   const [activeOrder, setActiveOrder] = useState<Order | null>(MOCK_ACTIVE_ORDER);
+
+  // Auth States
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
 
   // Meals & Restaurants dynamic list
   const [meals, setMeals] = useState<Meal[]>(MOCK_MEALS);
@@ -99,29 +112,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [isDarkMode]);
 
-  // ─── INITIAL SYNC & AUTH ──────────────────────────────────────────────────
-  useEffect(() => {
-    const initApp = async () => {
-      try {
-        // 1. Auto-login default user if not already authenticated
-        if (!authService.isAuthenticated()) {
-          console.log('🔑 Performing automatic demo login...');
-          const authRes = await authService.login({
-            email: 'priya@nutriflow.ai',
-            password: 'password123'
-          });
-          if (authRes.success) {
-            authService.saveSession(authRes.data.token, authRes.data.user);
-          }
+  // ─── SYNC USER DATA FROM BACKEND ──────────────────────────────────────────
+  const syncUserData = async () => {
+    try {
+      if (authService.isAuthenticated()) {
+        const storedUser = authService.getStoredUser();
+        if (storedUser) {
+          setCurrentUser(storedUser);
         }
 
-        // 2. Fetch real User Health Profile from Backend
+        // Fetch profile
         const profileRes = await healthProfileService.get();
         if (profileRes.success && profileRes.data) {
           const profileData = profileRes.data as any;
           setHealthProfile(prev => ({
             ...prev,
-            name: 'Priya Sharma',
+            name: storedUser?.name || prev.name,
             age: profileData.age,
             heightCm: profileData.heightCm,
             weightKg: profileData.weightKg,
@@ -133,11 +139,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }));
         }
 
-        // 3. Fetch real meals list
+        // Fetch chat history
+        const chatRes = await aiService.getHistory();
+        if (chatRes.success && chatRes.data.length > 0) {
+          const adaptedChat: AIChatMessage[] = chatRes.data.map((msg: any) => ({
+            id: msg.id,
+            sender: msg.role === 'user' ? 'user' : 'ai',
+            text: msg.content,
+            timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }));
+          setAiChatMessages(adaptedChat);
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ User data sync failed.', err);
+    }
+  };
+
+  // ─── INITIAL APP SETUP ────────────────────────────────────────────────────
+  useEffect(() => {
+    const initApp = async () => {
+      try {
+        // Fetch meals (publicly available)
         setIsLoadingMeals(true);
         const mealsRes = await mealsService.getAll();
         if (mealsRes.success && mealsRes.data.length > 0) {
-          // Adapt backend Meal model to frontend Meal interface
           const adaptedMeals: Meal[] = mealsRes.data.map((m: any) => ({
             id: m.id,
             name: m.name,
@@ -170,26 +196,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         setIsLoadingMeals(false);
 
-        // 4. Fetch Chat history
-        const chatRes = await aiService.getHistory();
-        if (chatRes.success && chatRes.data.length > 0) {
-          const adaptedChat: AIChatMessage[] = chatRes.data.map((msg: any) => ({
-            id: msg.id,
-            sender: msg.role === 'user' ? 'user' : 'ai',
-            text: msg.content,
-            timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }));
-          setAiChatMessages(adaptedChat);
+        // If user already authenticated, sync data
+        if (authService.isAuthenticated()) {
+          await syncUserData();
+        } else {
+          // Auto-login to Priya Sharma by default as a preview!
+          console.log('🔑 Performing automatic demo login for preview...');
+          const authRes = await authService.login({
+            email: 'priya@nutriflow.ai',
+            password: 'password123'
+          });
+          if (authRes.success) {
+            authService.saveSession(authRes.data.token, authRes.data.user);
+            await syncUserData();
+          }
         }
 
       } catch (err) {
-        console.warn('⚠️ Backend sync failed, using client mock mode.', err);
+        console.warn('⚠️ App initialization failed, using local mock defaults.', err);
         setIsLoadingMeals(false);
       }
     };
 
     initApp();
   }, []);
+
+  // Logout function
+  const logout = () => {
+    authService.logout();
+    setCurrentUser(null);
+    setHealthProfile(INITIAL_HEALTH_PROFILE);
+    setCart([]);
+    setAiChatMessages([
+      {
+        id: 'ai-welcome',
+        sender: 'ai',
+        text: `Hello! I am NutriFlow AI. Log in to personalize your glycemic targets and macro recommendation indexes.`,
+        timestamp: 'Just now'
+      }
+    ]);
+  };
 
   // Update health profile on backend whenever locally saved
   const handleSaveHealthProfile = async (updated: HealthProfile) => {
@@ -303,7 +349,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     } catch (err) {
       console.warn('API placeOrder failed, running in fallback mode.', err);
-      // Fallback
       const newOrder: Order = {
         id: `NF-${Math.floor(10000 + Math.random() * 90000)}`,
         items: [...cart],
@@ -357,7 +402,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('API chatbot failed, running in fallback mode.', err);
     }
 
-    // Fallback response if offline/API fails
     setTimeout(() => {
       let aiText = `I have analyzed your query regarding "${text}". Based on your PCOS & insulin response markers, maintaining high protein (35g+) and rich polyphenol fiber will prevent glucose spikes.`;
       let recMeal: Meal | undefined = undefined;
@@ -416,6 +460,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addGroceryToCart,
         meals,
         isLoadingMeals,
+        currentUser,
+        setCurrentUser,
+        isAuthModalOpen,
+        setIsAuthModalOpen,
+        logout,
+        syncUserData,
       }}
     >
       {children}
