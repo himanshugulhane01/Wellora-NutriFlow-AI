@@ -3,10 +3,8 @@ import { useApp } from '../../context/AppContext';
 import type { Meal } from '../../types';
 import {
   Search, Star, Clock, Plus, Minus, ShieldCheck, Leaf,
-  Flame, Bike, SlidersHorizontal, X, Sparkles, Bot,
-  Pizza, Salad, Soup, CupSoda, Sandwich, Fish, Beef,
-  Wheat, Apple, Coffee, ChefHat, Filter, TrendingUp,
-  AlertTriangle, CheckCircle, Percent, ShieldAlert, Heart, Eye, EyeOff
+  Bike, SlidersHorizontal, X, Sparkles,
+  AlertTriangle, ShieldAlert, Eye, EyeOff
 } from 'lucide-react';
 import { AIFoodWarningModal, analyzeFoodRisk } from './AIFoodWarningModal';
 import type { FoodRiskWarning } from './AIFoodWarningModal';
@@ -38,9 +36,9 @@ const FOOD_CATEGORIES: FoodCategory[] = [
 
 // Food App Offer Banners
 const FOOD_OFFERS = [
-  { id: '1', title: '50% OFF Health Bowls', desc: 'Code: NUTRI50 · On all PCOS & Diabetic safe meals', bg: 'from-[#034B36] to-emerald-800', tag: 'HEALTH SPECIAL' },
-  { id: '2', title: 'Guilt-Free Low GI Pizzas', desc: 'Zero blood sugar spike · Made with almond & cauliflower crust', bg: 'from-amber-600 to-orange-700', tag: 'NEW CRAVING' },
-  { id: '3', title: '15-Min Express Delivery', desc: 'Hot & fresh from certified clinical kitchens near you', bg: 'from-blue-700 to-indigo-900', tag: 'SUPERFAST' },
+  { id: '1', title: '50% OFF Health Bowls', desc: 'Code: NUTRI50 · On all PCOS & Diabetic safe meals', bg: 'from-[#034B36] to-emerald-800', tag: 'HEALTH SPECIAL', filterCategory: 'healthy' },
+  { id: '2', title: 'Guilt-Free Low GI Pizzas', desc: 'Zero blood sugar spike · Made with almond & cauliflower crust', bg: 'from-amber-600 to-orange-700', tag: 'NEW CRAVING', filterCategory: 'pizza' },
+  { id: '3', title: '15-Min Express Delivery', desc: 'Hot & fresh from certified clinical kitchens near you', bg: 'from-blue-700 to-indigo-900', tag: 'SUPERFAST', sortBy: 'prep-time' as SortOption },
 ];
 
 // ─── Sort Options ─────────────────────────────────────────────────────────────
@@ -280,7 +278,10 @@ export const Marketplace: React.FC = () => {
       result = result.filter(meal =>
         meal.name.toLowerCase().includes(q) ||
         meal.restaurantName.toLowerCase().includes(q) ||
-        meal.dietaryBadges.some(b => b.toLowerCase().includes(q))
+        meal.dietaryBadges.some(b => b.toLowerCase().includes(q)) ||
+        meal.categories.some(c => c.toLowerCase().includes(q)) ||
+        meal.ingredients.some(i => i.toLowerCase().includes(q)) ||
+        meal.aiExplanation.toLowerCase().includes(q)
       );
     }
 
@@ -341,6 +342,20 @@ export const Marketplace: React.FC = () => {
     setPendingMeal(null);
     setActiveWarning(null);
     addToCart(meal);
+  };
+
+  const handleOfferClick = (offer: typeof FOOD_OFFERS[number]) => {
+    if (offer.filterCategory) {
+      setActiveCategoryId(offer.filterCategory);
+    }
+    if (offer.sortBy) {
+      setSortBy(offer.sortBy);
+      setShowFilters(true);
+    }
+    // Scroll to items
+    setTimeout(() => {
+      document.querySelector('[class*="FOOD_ITEMS_GRID"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const totalRiskyCount = Array.from(mealRisks.values()).filter(Boolean).length;
@@ -459,7 +474,7 @@ export const Marketplace: React.FC = () => {
         {activeCategoryId === 'all' && !searchQuery && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {FOOD_OFFERS.map(offer => (
-              <div key={offer.id} className={`p-5 rounded-3xl bg-gradient-to-r ${offer.bg} text-white shadow-xl flex flex-col justify-between space-y-3 relative overflow-hidden group`}>
+              <div key={offer.id} className={`p-5 rounded-3xl bg-gradient-to-r ${offer.bg} text-white shadow-xl flex flex-col justify-between space-y-3 relative overflow-hidden group cursor-pointer`} onClick={() => handleOfferClick(offer)}>
                 <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-28 h-28 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform" />
                 <div>
                   <span className="px-2.5 py-1 rounded-full bg-white/20 text-[9px] font-black tracking-wider uppercase border border-white/20">
@@ -468,9 +483,9 @@ export const Marketplace: React.FC = () => {
                   <h4 className="text-lg font-black mt-2 font-['Outfit']">{offer.title}</h4>
                   <p className="text-xs text-white/80 mt-1 font-medium">{offer.desc}</p>
                 </div>
-                <div className="flex items-center gap-1 text-xs font-extrabold text-amber-300">
-                  <span>Order Now →</span>
-                </div>
+                <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/20 text-xs font-extrabold text-white transition-colors w-fit">
+                  Order Now <span className="text-amber-300">→</span>
+                </button>
               </div>
             ))}
           </div>
@@ -488,7 +503,7 @@ export const Marketplace: React.FC = () => {
                   AI Health Guard Active • {healthProfile.diseases.join(', ') || 'Vitals Logged'}
                 </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                  NutriBot AI flagged <strong>{totalRiskyCount} items</strong> in the menu that conflict with your blood pressure/glycemic limits. Look for the ⚠️ warning badges.
+                  Wellora AI flagged <strong>{totalRiskyCount} items</strong> in the menu that conflict with your blood pressure/glycemic limits. Look for the ⚠️ warning badges.
                 </p>
               </div>
             </div>

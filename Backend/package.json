@@ -1,7 +1,7 @@
 {
-  "name": "nutriflow-backend",
+  "name": "wellora-backend",
   "version": "1.0.0",
-  "description": "NutriFlow AI — Backend API Server",
+  "description": "Wellora — Backend API Server",
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",

@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   Sun, Moon, ShoppingBag, Bot, Menu, Activity,
-  LogOut, User, MapPin, Bell
+  LogOut, MapPin
 } from 'lucide-react';
 
 interface DashboardHeaderProps {
@@ -21,7 +21,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
     cart,
     setIsCartOpen,
     setIsAIModalOpen,
-    setIsProfileModalOpen,
     openProfileModal,
     setIsOrderTrackingOpen,
     activeOrder,
@@ -43,9 +42,18 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
     'admin-dashboard': 'Admin Dashboard',
     'restaurant-dashboard': 'Restaurant Hub',
     'doctor-dashboard': 'Doctor Portal',
+    'gold-facilities': 'Gold Facilities',
+    'my-orders': 'My Orders',
+    'healthy-foods': 'Healthy Foods',
+    'health-reports': 'Health Reports',
+    'water-tracker': 'Water Tracker',
+    'rewards': 'Rewards & Wallet',
+    'wallet': 'Rewards & Wallet',
+    'workouts': 'Workouts',
+    'favorites': 'Favorites',
   };
 
-  const pageTitle = pageTitles[currentView] || 'Wellora AI';
+  const pageTitle = pageTitles[currentView] || 'Wellora';
 
   return (
     <header className="sticky top-0 z-40 h-16 bg-white/95 dark:bg-[#091F17]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-emerald-500/10 px-4 lg:px-6 flex items-center justify-between shadow-sm">
@@ -142,10 +150,19 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
           <div className="flex items-center gap-2">
             <button
               onClick={() => openProfileModal('account')}
-              className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white font-black text-sm flex items-center justify-center shadow-md shadow-emerald-500/30 hover:scale-105 transition-transform uppercase"
+              className="relative group"
               title={currentUser.name}
             >
-              {currentUser.name[0]}
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 p-[2.5px] shadow-lg shadow-emerald-500/25 group-hover:shadow-emerald-500/40 group-hover:scale-110 transition-all duration-300">
+                <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center">
+                  <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 uppercase">
+                    {currentUser.name.split(' ').length > 1
+                      ? `${currentUser.name.split(' ')[0][0]}${currentUser.name.split(' ')[1][0]}`
+                      : currentUser.name[0]}
+                  </span>
+                </div>
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-sm" />
             </button>
             <button
               onClick={logout}

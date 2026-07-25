@@ -8,7 +8,16 @@ export type PlatformView =
   | 'doctor-consultation'
   | 'admin-dashboard'
   | 'restaurant-dashboard'
-  | 'doctor-dashboard';
+  | 'doctor-dashboard'
+  | 'gold-facilities'
+  | 'my-orders'
+  | 'healthy-foods'
+  | 'health-reports'
+  | 'workouts'
+  | 'water-tracker'
+  | 'favorites'
+  | 'rewards'
+  | 'wallet';
 
 export type CategoryFilter = 
   | 'All'
@@ -20,6 +29,7 @@ export type CategoryFilter =
   | 'Heart Healthy'
   | 'Kidney Friendly'
   | 'PCOS'
+  | 'PCOS Safe'
   | 'Thyroid'
   | 'Pregnancy'
   | 'Kids Nutrition'
@@ -28,7 +38,32 @@ export type CategoryFilter =
   | 'Vegetarian'
   | 'Low Carb'
   | 'Keto'
-  | 'Organic';
+  | 'Organic'
+  | 'Pizza'
+  | 'Italian'
+  | 'Comfort Food'
+  | 'Low GI'
+  | 'Low Sodium'
+  | 'Burgers'
+  | 'American'
+  | 'Cheat Meal'
+  | 'Breakfast'
+  | 'Post-Workout'
+  | 'Ayurvedic'
+  | 'Detox'
+  | 'Gut Health'
+  | 'Chinese'
+  | 'Indo-Chinese'
+  | 'Noodles'
+  | 'Steamed'
+  | 'Low Fat'
+  | 'Light'
+  | 'Seafood'
+  | 'Spicy'
+  | 'Plant-Based'
+  | 'Whole Wheat'
+  | 'Balanced'
+  | 'Indian Fusion';
 
 export interface NutritionMacros {
   calories: number;
@@ -128,7 +163,7 @@ export interface Doctor {
 export interface GroceryItem {
   id: string;
   name: string;
-  category: 'Vegetables' | 'Fruits' | 'Protein' | 'Organic Dairy' | 'Supplements' | 'Healthy Snacks';
+  category: 'Vegetables' | 'Fruits' | 'Protein' | 'Organic Dairy' | 'Supplements' | 'Healthy Snacks' | 'Pizza';
   price: number;
   unit: string;
   image: string;

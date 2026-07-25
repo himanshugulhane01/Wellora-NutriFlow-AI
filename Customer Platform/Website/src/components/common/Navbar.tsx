@@ -53,6 +53,15 @@ export const Navbar: React.FC = () => {
     'admin-dashboard': { label: 'Admin Dashboard', icon: LayoutDashboard },
     'restaurant-dashboard': { label: 'Restaurant Hub', icon: UtensilsCrossed },
     'doctor-dashboard': { label: 'Doctor Portal', icon: UserCheck },
+    'gold-facilities': { label: 'Gold Facilities', icon: Sparkles },
+    'my-orders': { label: 'My Orders', icon: ShoppingBag },
+    'healthy-foods': { label: 'Healthy Foods', icon: Compass },
+    'health-reports': { label: 'Health Reports', icon: Activity },
+    'workouts': { label: 'Workouts', icon: Activity },
+    'water-tracker': { label: 'Water Tracker', icon: Activity },
+    'favorites': { label: 'Favourites', icon: Activity },
+    'rewards': { label: 'Rewards', icon: Activity },
+    'wallet': { label: 'Wallet', icon: Activity },
   };
 
   const handleSelectView = (view: PlatformView) => {
@@ -78,10 +87,7 @@ export const Navbar: React.FC = () => {
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white font-['Outfit']">
-                  NUTRIFLOW
-                </span>
-                <span className="px-2 py-0.5 text-[11px] font-bold tracking-wider text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 rounded-full uppercase">
-                  AI
+                  WELLORA
                 </span>
               </div>
               <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 -mt-1 hidden sm:block">
@@ -154,13 +160,13 @@ export const Navbar: React.FC = () => {
             </span>
           </button>
 
-          {/* NutriBot Chat Launcher */}
+          {/* Wellora AI Chat Launcher */}
           <button
             onClick={() => setIsAIModalOpen(true)}
             className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-xs shadow-lg shadow-blue-500/25 hover:opacity-95 hover:scale-105 transition-all"
           >
             <Bot className="w-4 h-4 animate-bounce" />
-            <span className="hidden sm:inline">Ask NutriBot</span>
+            <span className="hidden sm:inline">Ask Wellora AI</span>
           </button>
 
           {/* Active Order Tracker Chip */}

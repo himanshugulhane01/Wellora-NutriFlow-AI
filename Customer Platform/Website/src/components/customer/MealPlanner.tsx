@@ -1,38 +1,99 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { MOCK_MEALS } from '../../data/mockData';
-import { 
-  Calendar as CalendarIcon, 
-  RotateCw, 
-  ShoppingCart
+import { mealPlansService } from '../../services';
+import {
+  Calendar as CalendarIcon,
+  RotateCw,
+  ShoppingCart,
+  Loader2
 } from 'lucide-react';
+
+interface MealSlot {
+  slotId: string;
+  dayOfWeek: number;
+  mealType: string;
+  meal: {
+    id: string;
+    name: string;
+    imageUrl: string;
+    calories: number;
+    protein: number;
+  } | null;
+  customName?: string;
+}
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+
+function adaptSlot(s: any): MealSlot {
+  return {
+    slotId: s.id,
+    dayOfWeek: s.dayOfWeek,
+    mealType: s.mealType,
+    meal: s.meal ? {
+      id: s.meal.id,
+      name: s.meal.name,
+      imageUrl: s.meal.imageUrl || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
+      calories: s.meal.calories || 0,
+      protein: s.meal.protein || 0,
+    } : null,
+    customName: s.customName,
+  };
+}
 
 export const MealPlanner: React.FC = () => {
   const { setCurrentView, healthProfile } = useApp();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [weeklyPlan, setWeeklyPlan] = useState<Record<number, Record<string, MealSlot>>>({});
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const fetchPlan = async () => {
+    try {
+      setLoading(true);
+      const res = await mealPlansService.getWeekly();
+      if (res.success && res.data) {
+        const plan = res.data as any;
+        const slots: MealSlot[] = (plan.slots || []).map(adaptSlot);
+        const grouped: Record<number, Record<string, MealSlot>> = {};
+        for (let d = 0; d < 7; d++) grouped[d] = {};
+        slots.forEach(s => {
+          if (grouped[s.dayOfWeek]) grouped[s.dayOfWeek][s.mealType] = s;
+        });
+        setWeeklyPlan(grouped);
+      }
+    } catch (err) {
+      console.warn('Meal plan fetch failed:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const weeklySchedule = days.map((day, i) => ({
-    day,
-    breakfast: MOCK_MEALS[4], // Berry Acai Bowl
-    lunch: MOCK_MEALS[0],     // Salmon Bowl
-    dinner: MOCK_MEALS[1],    // Falafel Wrap
-    snack: MOCK_MEALS[5],     // Ayurvedic Lentil Soup
-    totalCalories: 1420 + (i * 20),
-    totalProtein: 96 + (i * 2),
-  }));
+  useEffect(() => { fetchPlan(); }, []);
 
-  const handleRegenerate = () => {
-    setIsGenerating(true);
-    setTimeout(() => {
+  const handleRegenerate = async () => {
+    try {
+      setIsGenerating(true);
+      await mealPlansService.generate();
+      await fetchPlan();
+    } catch (err) {
+      console.warn('Generate failed:', err);
+    } finally {
       setIsGenerating(false);
-    }, 1200);
+    }
+  };
+
+  const dayTotals = (dayIdx: number) => {
+    const daySlots = weeklyPlan[dayIdx] || {};
+    let cal = 0, pro = 0;
+    Object.values(daySlots).forEach(s => {
+      if (s.meal) { cal += s.meal.calories; pro += s.meal.protein; }
+    });
+    return { cal, pro };
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      
+
       {/* Top Planner Bar */}
       <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
@@ -44,7 +105,7 @@ export const MealPlanner: React.FC = () => {
             AI Weekly Meal Planner
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Auto-tuned for {healthProfile.name} ({healthProfile.fitnessGoal} • {healthProfile.dailyCalorieTarget} kcal).
+            Auto-tuned for {healthProfile.name} ({healthProfile.fitnessGoal} &bull; {healthProfile.dailyCalorieTarget} kcal).
           </p>
         </div>
 
@@ -68,95 +129,71 @@ export const MealPlanner: React.FC = () => {
         </div>
       </div>
 
-      {/* Days Calendar Cards */}
-      <div className="space-y-6">
-        {weeklySchedule.map((item, idx) => (
-          <div
-            key={idx}
-            className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md hover:shadow-xl transition-all space-y-4"
-          >
-            {/* Day Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white font-['Outfit']">
-                  {item.day}
-                </h3>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
-                <span>Calories: <strong className="text-orange-500">{item.totalCalories} kcal</strong></span>
-                <span>Protein: <strong className="text-emerald-500">{item.totalProtein}g</strong></span>
-              </div>
-            </div>
-
-            {/* 4 Meals Grid (Breakfast, Lunch, Dinner, Snack) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              
-              {/* Breakfast */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 space-y-3">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-                  <span>Breakfast</span>
-                  <span>8:00 AM</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <img src={item.breakfast.image} alt={item.breakfast.name} className="w-14 h-14 rounded-xl object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{item.breakfast.name}</h4>
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{item.breakfast.macros.calories} kcal • {item.breakfast.macros.protein}g P</p>
+      {/* Loading */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        </div>
+      ) : (
+        /* Days Calendar Cards */
+        <div className="space-y-6">
+          {DAYS.map((day, dayIdx) => {
+            const totals = dayTotals(dayIdx);
+            const daySlots = weeklyPlan[dayIdx] || {};
+            return (
+              <div
+                key={dayIdx}
+                className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md hover:shadow-xl transition-all space-y-4"
+              >
+                {/* Day Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white font-['Outfit']">{day}</h3>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
+                    <span>Calories: <strong className="text-orange-500">{totals.cal} kcal</strong></span>
+                    <span>Protein: <strong className="text-emerald-500">{totals.pro}g</strong></span>
                   </div>
                 </div>
-              </div>
 
-              {/* Lunch */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 space-y-3">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-                  <span>Lunch</span>
-                  <span>1:00 PM</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <img src={item.lunch.image} alt={item.lunch.name} className="w-14 h-14 rounded-xl object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{item.lunch.name}</h4>
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{item.lunch.macros.calories} kcal • {item.lunch.macros.protein}g P</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dinner */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 space-y-3">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-                  <span>Dinner</span>
-                  <span>7:30 PM</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <img src={item.dinner.image} alt={item.dinner.name} className="w-14 h-14 rounded-xl object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{item.dinner.name}</h4>
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{item.dinner.macros.calories} kcal • {item.dinner.macros.protein}g P</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Snack */}
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 space-y-3">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-                  <span>Evening Snack</span>
-                  <span>4:30 PM</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <img src={item.snack.image} alt={item.snack.name} className="w-14 h-14 rounded-xl object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{item.snack.name}</h4>
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{item.snack.macros.calories} kcal • {item.snack.macros.protein}g P</p>
-                  </div>
+                {/* 4 Meals Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {MEAL_TYPES.map((mt, mtIdx) => {
+                    const slot = daySlots[mt];
+                    const meal = slot?.meal;
+                    const times = ['8:00 AM', '1:00 PM', '7:30 PM', '4:30 PM'];
+                    return (
+                      <div key={mt} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 space-y-3">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
+                          <span>{mt === 'Snack' ? 'Evening Snack' : mt}</span>
+                          <span>{times[mtIdx]}</span>
+                        </div>
+                        {meal ? (
+                          <div className="flex items-center gap-3">
+                            <img src={meal.imageUrl} alt={meal.name} className="w-14 h-14 rounded-xl object-cover" />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{meal.name}</h4>
+                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">{meal.calories} kcal &bull; {meal.protein}g P</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3 opacity-50">
+                            <div className="w-14 h-14 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs text-slate-400">
+                              +
+                            </div>
+                            <p className="text-[10px] text-slate-400">No meal assigned</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
-            </div>
-          </div>
-        ))}
-      </div>
-
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

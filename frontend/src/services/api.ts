@@ -16,7 +16,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   };
 
   // Attach JWT token if available
-  const jwt = token ?? localStorage.getItem('nutriflow_token');
+  const jwt = token ?? localStorage.getItem('wellora_token');
   if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {

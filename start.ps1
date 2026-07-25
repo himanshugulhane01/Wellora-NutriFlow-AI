@@ -1,8 +1,8 @@
-# NutriFlow AI - Start Frontend + Backend
+# Wellora - Start Frontend + Backend
 # Run from: C:\Users\himan\Desktop\Projects\NutriFlow AI
 
 Write-Host ""
-Write-Host "NutriFlow AI - Starting Full-Stack..." -ForegroundColor Green
+Write-Host "Wellora - Starting Full-Stack..." -ForegroundColor Green
 Write-Host "-----------------------------------" -ForegroundColor DarkGray
 
 $backendPath = "C:\Users\himan\Desktop\Projects\NutriFlow AI\Backend"

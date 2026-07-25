@@ -1,5 +1,5 @@
 ================================================================
-  NUTRIFLOW AI — HOW TO START
+  WELLORA — HOW TO START
 ================================================================
 
 STEP 1: Open PowerShell and go to the project root:
@@ -23,10 +23,10 @@ STEP 3: Start FRONTEND (open another PowerShell window)
 
 ----------------------------------------------------------------
 DEMO LOGIN CREDENTIALS:
-  Email:    priya@nutriflow.ai
+  Email:    priya@wellora.ai
   Password: password123
 
-  Admin:    admin@nutriflow.ai
+  Admin:    admin@wellora.ai
   Password: password123
 
 ----------------------------------------------------------------

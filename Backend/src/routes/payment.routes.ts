@@ -39,7 +39,7 @@ router.post('/create-razorpay-order', authenticate, async (req: AuthRequest, res
         receipt: `receipt_${orderId || Date.now()}`,
         notes: {
           userId: req.user!.id,
-          app: 'NutriFlow AI',
+          app: 'Wellora',
         },
       }),
     });

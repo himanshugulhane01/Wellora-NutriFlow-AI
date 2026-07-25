@@ -19,7 +19,8 @@ import {
   mealsService,
   ordersService,
   healthProfileService,
-  aiService
+  aiService,
+  mealRecommendationService
 } from '../services';
 
 interface AppContextType {
@@ -51,12 +52,18 @@ interface AppContextType {
   isOrderTrackingOpen: boolean;
   setIsOrderTrackingOpen: (open: boolean) => void;
   activeOrder: Order | null;
+  ordersHistory: Order[];
+  isOrderSuccessModalOpen: boolean;
+  setIsOrderSuccessModalOpen: (open: boolean) => void;
+  lastPlacedOrder: Order | null;
   placeOrder: () => void;
   aiChatMessages: AIChatMessage[];
   sendAIMessage: (text: string) => void;
   addGroceryToCart: (item: GroceryItem) => void;
   meals: Meal[];
   isLoadingMeals: boolean;
+  recommendedMeals: Meal[];
+  isLoadingRecommendations: boolean;
 
   // Auth
   currentUser: User | null;
@@ -103,6 +110,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState<boolean>(false);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  const [ordersHistory, setOrdersHistory] = useState<Order[]>([]);
+  const [isOrderSuccessModalOpen, setIsOrderSuccessModalOpen] = useState<boolean>(false);
+  const [lastPlacedOrder, setLastPlacedOrder] = useState<Order | null>(null);
 
   // Auth States (Initialized synchronously from localStorage to avoid flashing)
   const [currentUser, setCurrentUser] = useState<User | null>(() => authService.getStoredUser());
@@ -115,12 +125,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [meals, setMeals] = useState<Meal[]>(MOCK_MEALS);
   const [isLoadingMeals, setIsLoadingMeals] = useState<boolean>(false);
 
+  // Recommendations
+  const [recommendedMeals, setRecommendedMeals] = useState<Meal[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState<boolean>(false);
+
   // AI Chat
   const [aiChatMessages, setAiChatMessages] = useState<AIChatMessage[]>([
     {
       id: 'ai-welcome',
       sender: 'ai',
-      text: `Hello! I'm NutriFlow AI. Sign in to get personalized meal recommendations, glycemic targets, and macro plans tailored to your health profile.`,
+      text: `Hello! I'm Wellora. Sign in to get personalized meal recommendations, glycemic targets, and macro plans tailored to your health profile.`,
       timestamp: 'Just now',
     }
   ]);
@@ -181,6 +195,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             timestamp: 'Just now',
           }]);
         }
+      }
+
+      // Fetch personalized meal recommendations
+      try {
+        setIsLoadingRecommendations(true);
+        const recRes = await mealRecommendationService.getRecommended(8);
+        if (recRes.success && recRes.data?.recommendations?.length > 0) {
+          const adaptedRecs: Meal[] = recRes.data.recommendations.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            restaurantId: r.restaurantId,
+            restaurantName: r.restaurantName,
+            image: r.imageUrl || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400',
+            price: r.price,
+            rating: r.healthScore ? Math.round((r.healthScore / 2) * 10) / 10 : 4.5,
+            reviewCount: 120,
+            prepTime: '20 min',
+            macros: {
+              calories: r.calories,
+              protein: r.protein,
+              carbs: r.carbs,
+              fat: r.fat,
+              fiber: r.fiber || 5,
+              sugar: r.sugar || 4,
+              glycemicIndex: r.glycemicIndex || 35,
+            },
+            categories: r.tags ? JSON.parse(r.tags) : [],
+            aiMatchScore: Math.min(99, Math.round(r.recommendationScore)),
+            healthRiskScore: r.healthScore > 8 ? 'Low' : 'Moderate',
+            aiExplanation: r.recommendationReasons?.join('. ') || r.description,
+            ingredients: r.description.split(', '),
+            preparation: 'Freshly prepared by certified culinary partners.',
+            isNutritionVerified: true,
+            dietaryBadges: r.tags ? JSON.parse(r.tags) : [],
+          }));
+          setRecommendedMeals(adaptedRecs);
+        }
+      } catch (err) {
+        console.warn('Recommendations fetch failed.', err);
+      } finally {
+        setIsLoadingRecommendations(false);
       }
     } catch (err) {
       console.warn('⚠️ User data sync failed, using local defaults.', err);
@@ -267,7 +322,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAiChatMessages([{
       id: 'ai-welcome',
       sender: 'ai',
-      text: `Hello! I'm NutriFlow AI. Sign in to get personalized meal recommendations, glycemic targets, and macro plans tailored to your health profile.`,
+      text: `Hello! I'm Wellora. Sign in to get personalized meal recommendations, glycemic targets, and macro plans tailored to your health profile.`,
       timestamp: 'Just now',
     }]);
   };
@@ -316,7 +371,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `grocery-${item.id}`,
       name: item.name,
       restaurantId: 'r-grocery',
-      restaurantName: 'NutriFlow Smart Grocery',
+      restaurantName: 'Wellora Smart Grocery',
       image: item.image,
       price: item.price,
       rating: item.rating,
@@ -385,9 +440,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             createdAt: 'Just now'
           };
           setActiveOrder(newOrder);
+          setOrdersHistory(prev => [newOrder, ...prev]);
+          setLastPlacedOrder(newOrder);
           setCart([]);
           setIsCartOpen(false);
-          setIsOrderTrackingOpen(true);
+          setIsOrderSuccessModalOpen(true);
           return;
         }
       }
@@ -414,9 +471,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: 'Just now'
     };
     setActiveOrder(newOrder);
+    setOrdersHistory(prev => [newOrder, ...prev]);
+    setLastPlacedOrder(newOrder);
     setCart([]);
     setIsCartOpen(false);
-    setIsOrderTrackingOpen(true);
+    setIsOrderSuccessModalOpen(true);
   };
 
   // ─── AI CHAT ──────────────────────────────────────────────────────────────
@@ -505,12 +564,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isOrderTrackingOpen,
         setIsOrderTrackingOpen,
         activeOrder,
+        ordersHistory,
+        isOrderSuccessModalOpen,
+        setIsOrderSuccessModalOpen,
+        lastPlacedOrder,
         placeOrder,
         aiChatMessages,
         sendAIMessage,
         addGroceryToCart,
         meals,
         isLoadingMeals,
+        recommendedMeals,
+        isLoadingRecommendations,
         currentUser,
         setCurrentUser,
         isAuthenticated,

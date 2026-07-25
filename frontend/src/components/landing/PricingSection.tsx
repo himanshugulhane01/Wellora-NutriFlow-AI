@@ -33,7 +33,7 @@ export const PricingSection: React.FC = () => {
       desc: "Full AI personalization, glycemic guard & weekly meal planner.",
       features: [
         "Everything in NutriBasic",
-        "Unlimited NutriBot AI consultations",
+        "Unlimited Wellora AI consultations",
         "PCOS & Diabetic Disease-Aware Filtering",
         "Explainable AI Meal Recommendations",
         "Automated Weekly Meal Planner",

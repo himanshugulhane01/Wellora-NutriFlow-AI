@@ -8,7 +8,16 @@ export type PlatformView =
   | 'doctor-consultation'
   | 'admin-dashboard'
   | 'restaurant-dashboard'
-  | 'doctor-dashboard';
+  | 'doctor-dashboard'
+  | 'gold-facilities'
+  | 'my-orders'
+  | 'healthy-foods'
+  | 'health-reports'
+  | 'workouts'
+  | 'water-tracker'
+  | 'favorites'
+  | 'rewards'
+  | 'wallet';
 
 export type CategoryFilter = 
   | 'All'
@@ -20,6 +29,7 @@ export type CategoryFilter =
   | 'Heart Healthy'
   | 'Kidney Friendly'
   | 'PCOS'
+  | 'PCOS Safe'
   | 'Thyroid'
   | 'Pregnancy'
   | 'Kids Nutrition'
@@ -28,7 +38,32 @@ export type CategoryFilter =
   | 'Vegetarian'
   | 'Low Carb'
   | 'Keto'
-  | 'Organic';
+  | 'Organic'
+  | 'Pizza'
+  | 'Italian'
+  | 'Comfort Food'
+  | 'Low GI'
+  | 'Low Sodium'
+  | 'Burgers'
+  | 'American'
+  | 'Cheat Meal'
+  | 'Breakfast'
+  | 'Post-Workout'
+  | 'Ayurvedic'
+  | 'Detox'
+  | 'Gut Health'
+  | 'Chinese'
+  | 'Indo-Chinese'
+  | 'Noodles'
+  | 'Steamed'
+  | 'Low Fat'
+  | 'Light'
+  | 'Seafood'
+  | 'Spicy'
+  | 'Plant-Based'
+  | 'Whole Wheat'
+  | 'Balanced'
+  | 'Indian Fusion';
 
 export interface NutritionMacros {
   calories: number;
@@ -100,6 +135,14 @@ export interface HealthProfile {
   dailyFatTarget: number;
   waterIntakeLiters: number;
   healthScore: number;
+  // Vitals — entered manually or via biometric scanner
+  bloodPressureSystolic?: number;   // e.g. 120 (normal) | 140+ (high)
+  bloodPressureDiastolic?: number;  // e.g. 80 (normal) | 90+ (high)
+  bloodSugarFasting?: number;       // mg/dL — 70-100 normal, 100-125 pre-diabetic, 126+ diabetic
+  cholesterolTotal?: number;        // mg/dL — <200 normal, 200-239 borderline, 240+ high
+  heartRateBpm?: number;            // bpm — 60-100 normal
+  oxygenSaturation?: number;        // % — 95-100 normal
+  lastVitalScanAt?: string;         // ISO timestamp of last biometric scan
 }
 
 export interface Doctor {
@@ -120,7 +163,7 @@ export interface Doctor {
 export interface GroceryItem {
   id: string;
   name: string;
-  category: 'Vegetables' | 'Fruits' | 'Protein' | 'Organic Dairy' | 'Supplements' | 'Healthy Snacks';
+  category: 'Vegetables' | 'Fruits' | 'Protein' | 'Organic Dairy' | 'Supplements' | 'Healthy Snacks' | 'Pizza';
   price: number;
   unit: string;
   image: string;
@@ -163,6 +206,15 @@ export interface AIChatMessage {
   voiceAudioUrl?: string;
 }
 
+export interface UserAddress {
+  id: string;
+  label: 'Home' | 'Work' | 'Gym' | 'Other';
+  addressLine: string;
+  city: string;
+  pincode: string;
+  isDefault?: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -170,4 +222,10 @@ export interface User {
   role: string;
   avatar?: string;
   phone?: string;
+  addresses?: UserAddress[];
+  defaultAddress?: string;
+  preferredPayment?: string;
+  dietaryPreference?: 'Vegetarian' | 'Non-Vegetarian' | 'Vegan' | 'Eggetarian';
+  nutriCashBalance?: number;
 }
+

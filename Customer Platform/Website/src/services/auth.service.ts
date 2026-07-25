@@ -26,22 +26,28 @@ export const authService = {
   me: () =>
     api.get<{ success: boolean; data: User & { healthProfile: unknown } }>('/auth/me'),
 
+  sendOtp: (phone: string) =>
+    api.post<{ success: boolean; message: string; data: { phone: string; otp: string; expiresInSeconds: number } }>('/auth/send-otp', { phone }),
+
+  verifyOtp: (phone: string, otp: string) =>
+    api.post<{ success: boolean; message: string }>('/auth/verify-otp', { phone, otp }),
+
   logout: () => {
-    localStorage.removeItem('nutriflow_token');
-    localStorage.removeItem('nutriflow_user');
+    localStorage.removeItem('wellora_token');
+    localStorage.removeItem('wellora_user');
   },
 
   saveSession: (token: string, user: User) => {
-    localStorage.setItem('nutriflow_token', token);
-    localStorage.setItem('nutriflow_user', JSON.stringify(user));
+    localStorage.setItem('wellora_token', token);
+    localStorage.setItem('wellora_user', JSON.stringify(user));
   },
 
   getStoredUser: (): User | null => {
-    const raw = localStorage.getItem('nutriflow_user');
+    const raw = localStorage.getItem('wellora_user');
     return raw ? JSON.parse(raw) : null;
   },
 
   isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('nutriflow_token');
+    return !!localStorage.getItem('wellora_token');
   },
 };

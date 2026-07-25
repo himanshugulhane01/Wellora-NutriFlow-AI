@@ -89,7 +89,7 @@ export const HeroSection: React.FC = () => {
                 <span className="text-slate-700 dark:text-slate-300">Delivered.</span>
               </h1>
               <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed pt-2">
-                NutriFlow AI reads your medical history, glycemic index limits, and clinical macro targets to curate, prepare, and deliver perfectly matched meals — from India's certified nutrition kitchens.
+                Wellora reads your medical history, glycemic index limits, and clinical macro targets to curate, prepare, and deliver perfectly matched meals — from India's certified nutrition kitchens.
               </p>
             </div>
 
@@ -118,7 +118,7 @@ export const HeroSection: React.FC = () => {
                 className="px-6 py-4 rounded-2xl bg-blue-500/10 text-blue-700 dark:text-blue-400 font-extrabold text-sm border border-blue-500/30 hover:border-blue-500/60 transition-all flex items-center gap-2"
               >
                 <Bot className="w-4 h-4 animate-bounce" />
-                <span>Try NutriBot AI</span>
+                <span>Try Wellora AI</span>
               </button>
             </div>
 
@@ -180,7 +180,7 @@ export const HeroSection: React.FC = () => {
                   <div className="flex items-start gap-2">
                     <Sparkles className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5 animate-spin" style={{ animationDuration: '3s' }} />
                     <p className="leading-snug text-[11px]">
-                      <strong className="text-emerald-700 dark:text-emerald-400">NutriBot AI says:</strong> Lowers insulin spike by 42%. Safe for PCOS, lactose sensitivity & inflammatory response markers.
+                      <strong className="text-emerald-700 dark:text-emerald-400">Wellora AI says:</strong> Lowers insulin spike by 42%. Safe for PCOS, lactose sensitivity & inflammatory response markers.
                     </p>
                   </div>
                 </div>

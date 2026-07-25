@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { authService } from '../../services';
 import {
   X, Lock, Mail, User, Phone, AlertCircle, Sparkles, Eye, EyeOff,
-  ArrowRight, CheckCircle2, ShieldCheck, KeyRound, RefreshCw
+  ArrowRight, CheckCircle2, ShieldCheck
 } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
@@ -27,7 +27,7 @@ export const AuthModal: React.FC = () => {
   // Mobile OTP States
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState<string | null>(null);
+  const [_generatedOtp, setGeneratedOtp] = useState<string | null>(null);
   const [otpInput, setOtpInput] = useState('');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
@@ -186,7 +186,7 @@ export const AuthModal: React.FC = () => {
             </div>
             <div>
               <h2 className="text-2xl font-black text-slate-900 dark:text-white font-['Outfit']">
-                {mode === 'login' ? 'Welcome Back!' : 'Join Wellora AI'}
+                {mode === 'login' ? 'Welcome Back!' : 'Join Wellora'}
               </h2>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                 {mode === 'login'

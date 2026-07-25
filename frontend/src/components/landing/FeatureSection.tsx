@@ -98,7 +98,7 @@ export const FeatureSection: React.FC = () => {
 
                 <div className="mt-8 pt-4 border-t border-slate-700/50 flex items-center gap-2 text-xs font-semibold text-emerald-400">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Integrated into NutriFlow Ecosystem</span>
+                  <span>Integrated into Wellora Ecosystem</span>
                 </div>
               </div>
             );

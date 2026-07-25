@@ -1,5 +1,4 @@
 import React from 'react';
-import { useApp } from '../../context/AppContext';
 import type { Meal } from '../../types';
 import {
   AlertTriangle, X, ShieldAlert, Heart, Droplets, Flame,
@@ -190,7 +189,7 @@ export const AIFoodWarningModal: React.FC<AIFoodWarningModalProps> = ({
                 {warning.reason}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                NutriBot AI detected a conflict with your health profile
+                Wellora AI detected a conflict with your health profile
               </p>
             </div>
             <button

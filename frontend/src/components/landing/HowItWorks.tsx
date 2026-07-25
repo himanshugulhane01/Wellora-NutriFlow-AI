@@ -13,7 +13,7 @@ export const HowItWorks: React.FC = () => {
     {
       num: "02",
       title: "AI Understands Your Body",
-      desc: "NutriFlow AI computes glycemic index limits, macro ratios, and allergy safety scores in real-time.",
+      desc: "Wellora computes glycemic index limits, macro ratios, and allergy safety scores in real-time.",
       icon: Cpu,
       color: "from-blue-500 to-indigo-500",
     },
@@ -50,7 +50,7 @@ export const HowItWorks: React.FC = () => {
             5-Step Clinical Precision Pipeline
           </span>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight font-['Outfit']">
-            How NutriFlow AI Works
+            How Wellora Works
           </h2>
           <p className="text-slate-600 dark:text-slate-400 text-base">
             From deep biological profiling to door-step delivery in under 30 minutes.

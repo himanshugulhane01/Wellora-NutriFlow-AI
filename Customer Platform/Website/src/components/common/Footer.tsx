@@ -17,7 +17,7 @@ export const Footer: React.FC = () => {
                 <Sparkles className="w-5 h-5" />
               </div>
               <span className="font-extrabold text-2xl text-white tracking-tight font-['Outfit']">
-                NUTRIFLOW <span className="text-emerald-500">AI</span>
+                WELLORA <span className="text-emerald-500">AI</span>
               </span>
             </div>
             <p className="text-sm text-slate-400 max-w-sm leading-relaxed">
@@ -104,7 +104,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© 2026 NutriFlow AI Technologies Inc. All rights reserved.</p>
+          <p>© 2026 Wellora Technologies Inc. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <a href="#privacy" className="hover:text-slate-300">Privacy Policy</a>
             <a href="#terms" className="hover:text-slate-300">Terms of Service</a>

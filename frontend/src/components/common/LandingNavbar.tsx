@@ -14,7 +14,6 @@ export const LandingNavbar: React.FC = () => {
     setAuthModalDefaultMode,
     setIsAIModalOpen,
     isAuthenticated,
-    currentUser,
     setCurrentView,
     logout,
   } = useApp();
@@ -70,7 +69,7 @@ export const LandingNavbar: React.FC = () => {
             className="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-xs shadow-lg shadow-blue-500/25 hover:opacity-95 hover:scale-105 transition-all"
           >
             <Bot className="w-4 h-4" />
-            <span>Ask NutriBot</span>
+            <span>Ask Wellora AI</span>
           </button>
 
           {/* Dark/Light Toggle */}

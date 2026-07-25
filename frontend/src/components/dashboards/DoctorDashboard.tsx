@@ -120,7 +120,7 @@ export const DoctorDashboard: React.FC = () => {
           {isPrescriptionSent && (
             <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2 animate-pulse">
               <CheckCircle2 className="w-4 h-4" />
-              <span>Dietary Protocol & Prescription synced directly to patient's NutriFlow AI App!</span>
+              <span>Dietary Protocol & Prescription synced directly to patient's Wellora App!</span>
             </div>
           )}
 

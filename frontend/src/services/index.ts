@@ -112,6 +112,16 @@ export const mealPlansService = {
     api.patch(`/meal-plans/slots/${slotId}`, { mealId }),
 };
 
+export const mealRecommendationService = {
+  getRecommended: (limit?: number) =>
+    api.get<{ success: boolean; data: { recommendations: unknown[]; profileUsed: unknown; totalMealsScored: number } }>(
+      `/meals/recommended${limit ? `?limit=${limit}` : ''}`
+    ),
+
+  getQuickSuggestions: () =>
+    api.get<{ success: boolean; data: unknown[] }>('/meals/recommended/quick'),
+};
+
 export const paymentService = {
   createRazorpayOrder: (amount: number, orderId?: string) =>
     api.post<{ success: boolean; data: { id: string; amount: number; currency: string; keyId: string } }>('/payments/create-razorpay-order', { amount, orderId }),

@@ -1,9 +1,9 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import type { Meal, CartItem } from '../../types';
+import type { Meal } from '../../types';
 import {
-  Sparkles, ShieldCheck, AlertTriangle, CheckCircle, Heart, Flame,
-  Droplets, ArrowRight, X, Bot, RefreshCw, ChefHat
+  Sparkles, AlertTriangle, CheckCircle,
+  ArrowRight, X, Bot, RefreshCw
 } from 'lucide-react';
 import { analyzeFoodRisk } from './AIFoodWarningModal';
 
@@ -26,7 +26,6 @@ export const AIOrderAnalysisModal: React.FC<AIOrderAnalysisModalProps> = ({
   const totalCalories = cart.reduce((s, i) => s + i.meal.macros.calories * i.quantity, 0);
   const totalProtein  = cart.reduce((s, i) => s + i.meal.macros.protein * i.quantity, 0);
   const totalCarbs    = cart.reduce((s, i) => s + i.meal.macros.carbs * i.quantity, 0);
-  const totalFat      = cart.reduce((s, i) => s + i.meal.macros.fat * i.quantity, 0);
   const maxGI         = Math.max(...cart.map(i => i.meal.macros.glycemicIndex || 35));
 
   // Check health risks across all items in cart
@@ -82,7 +81,7 @@ export const AIOrderAnalysisModal: React.FC<AIOrderAnalysisModalProps> = ({
             <div className="flex items-center gap-2">
               <Bot className="w-6 h-6 animate-bounce" />
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-200">Wellora AI Clinical Analysis</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-200">Wellora Clinical Analysis</span>
                 <h3 className="text-lg font-black font-['Outfit']">Is this order good for your health?</h3>
               </div>
             </div>
@@ -154,7 +153,7 @@ export const AIOrderAnalysisModal: React.FC<AIOrderAnalysisModalProps> = ({
             <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
               <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
               <p>
-                <strong>Wellora AI Verified:</strong> This meal order aligns with your daily target of {healthProfile.dailyCalorieTarget} kcal and fits your {healthProfile.fitnessGoal} profile!
+                <strong>Wellora Verified:</strong> This meal order aligns with your daily target of {healthProfile.dailyCalorieTarget} kcal and fits your {healthProfile.fitnessGoal} profile!
               </p>
             </div>
           )}

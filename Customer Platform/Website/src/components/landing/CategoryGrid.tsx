@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export const CategoryGrid: React.FC = () => {
-  const { setActiveCategory, setCurrentView } = useApp();
+  const { setActiveCategory, setIsAuthModalOpen, setAuthModalDefaultMode } = useApp();
 
   const categoriesList: { name: CategoryFilter; desc: string; icon: React.ElementType; color: string }[] = [
     { name: 'PCOS', desc: 'Low GI & Anti-inflammatory', icon: Sparkles, color: 'from-pink-500 to-rose-500' },
@@ -34,7 +34,8 @@ export const CategoryGrid: React.FC = () => {
 
   const handleCategoryClick = (cat: CategoryFilter) => {
     setActiveCategory(cat);
-    setCurrentView('marketplace');
+    setAuthModalDefaultMode('signup');
+    setIsAuthModalOpen(true);
   };
 
   return (
@@ -51,7 +52,7 @@ export const CategoryGrid: React.FC = () => {
             </h2>
           </div>
           <button
-            onClick={() => { setActiveCategory('All'); setCurrentView('marketplace'); }}
+            onClick={() => { setAuthModalDefaultMode('signup'); setIsAuthModalOpen(true); }}
             className="flex items-center gap-2 text-xs font-black text-emerald-700 dark:text-emerald-400 hover:gap-3 transition-all"
           >
             <span>View All Health Categories</span>

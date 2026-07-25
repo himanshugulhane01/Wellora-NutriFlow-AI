@@ -14,6 +14,7 @@ import groceryRoutes from './routes/grocery.routes';
 import doctorsRoutes from './routes/doctors.routes';
 import aiRoutes from './routes/ai.routes';
 import mealPlansRoutes from './routes/meal-plans.routes';
+import mealRecommendationRoutes from './routes/meals-recommendation.routes';
 import paymentRoutes from './routes/payment.routes';
 import { errorHandler } from './middleware/error.middleware';
 
@@ -49,13 +50,14 @@ app.use('/api/grocery', groceryRoutes);
 app.use('/api/doctors', doctorsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/meal-plans', mealPlansRoutes);
+app.use('/api/meals', mealRecommendationRoutes);
 app.use('/api/payments', paymentRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({
     success: true,
-    message: '🥗 NutriFlow AI Backend is running',
+    message: '🥗 Wellora Backend is running',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
   });
@@ -71,7 +73,7 @@ app.use(errorHandler);
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`\n🥗 NutriFlow AI Backend`);
+  console.log(`\n🥗 Wellora Backend`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   console.log(`🚀 Server running on: http://localhost:${PORT}`);
   console.log(`📊 Health check:      http://localhost:${PORT}/api/health`);

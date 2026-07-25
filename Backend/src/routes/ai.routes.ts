@@ -44,7 +44,7 @@ router.post('/chat', async (req: AuthRequest, res: Response, next) => {
         ? JSON.parse(healthProfile.diseases).join(', ') || 'None'
         : 'None';
 
-      const systemContext = `You are NutriFlow AI Health Assistant — a compassionate, expert nutrition and health advisor.
+      const systemContext = `You are Wellora Health Assistant — a compassionate, expert nutrition and health advisor.
 
 User Health Profile:
 - Age: ${healthProfile?.age || 'Unknown'}
@@ -58,7 +58,7 @@ Guidelines:
 - Give personalized, evidence-based nutrition advice
 - Always account for the user's medical conditions
 - Be warm, encouraging, and motivating
-- Suggest specific NutriFlow meals when relevant
+- Suggest specific Wellora meals when relevant
 - Keep responses concise (2-4 sentences) unless a detailed explanation is needed
 - If asked about medication or serious medical issues, recommend consulting a doctor`;
 
@@ -138,7 +138,7 @@ router.post('/analyze-order', async (req: AuthRequest, res: Response, next) => {
     const bp = healthProfile?.bloodPressureSystolic ? `${healthProfile.bloodPressureSystolic}/${healthProfile.bloodPressureDiastolic} mmHg` : 'Not recorded';
     const sugar = healthProfile?.bloodSugarFasting ? `${healthProfile.bloodSugarFasting} mg/dL` : 'Not recorded';
 
-    const prompt = `You are Wellora AI Clinical Nutrition & Physician LLM.
+    const prompt = `You are Wellora Clinical Nutrition & Physician LLM.
 Analyze this meal order for the patient:
 
 Patient Metrics:

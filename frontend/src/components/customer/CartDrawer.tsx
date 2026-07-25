@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { paymentService } from '../../services';
 import {
   X, Trash2, ShoppingBag, ArrowRight, MapPin, CreditCard,
-  QrCode, Wallet, Banknote, Tag, Check, Gift, ShieldCheck, Sparkles, AlertCircle, Bot
+  QrCode, Wallet, Banknote, Tag, Gift, AlertCircle, Bot
 } from 'lucide-react';
 import { AIOrderAnalysisModal } from './AIOrderAnalysisModal';
 
@@ -113,13 +113,13 @@ export const CartDrawer: React.FC = () => {
           key: keyId,
           amount,
           currency,
-          name: 'Wellora AI',
+          name: 'Wellora',
           description: `Clinical Health Order (${cart.length} items)`,
           image: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png',
           order_id: razorpayOrderId,
           prefill: {
             name: currentUser?.name || 'Priya Sharma',
-            email: currentUser?.email || 'priya@nutriflow.ai',
+            email: currentUser?.email || 'priya@wellora.ai',
             contact: '+91 98765 43210',
           },
           theme: {

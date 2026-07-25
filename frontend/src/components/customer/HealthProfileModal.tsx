@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   X, User, Check, MapPin, Phone, Mail, CreditCard,
-  Utensils, Heart, Activity, ShieldCheck, Plus, Sparkles, Award
+  Utensils, Activity, Plus
 } from 'lucide-react';
 
 export const HealthProfileModal: React.FC = () => {
@@ -10,7 +10,7 @@ export const HealthProfileModal: React.FC = () => {
     isProfileModalOpen, setIsProfileModalOpen,
     healthProfile, setHealthProfile,
     currentUser, setCurrentUser,
-    profileModalTab, setProfileModalTab
+    profileModalTab,
   } = useApp();
 
   // Tab State: 'account' for Food App user details, 'vitals' for clinical medical data
@@ -19,7 +19,7 @@ export const HealthProfileModal: React.FC = () => {
   // Account / Food App Details state
   const [accountForm, setAccountForm] = useState({
     name: currentUser?.name || healthProfile.name || 'Himanshu Gulhane',
-    email: currentUser?.email || 'himanshu@nutriflow.ai',
+    email: currentUser?.email || 'himanshu@wellora.ai',
     phone: currentUser?.phone || '+91 98765 43210',
     dietaryPreference: currentUser?.dietaryPreference || 'Non-Vegetarian',
     homeAddress: 'Flat 402, Green Towers, Tech District, City - 500081',
@@ -46,7 +46,7 @@ export const HealthProfileModal: React.FC = () => {
       setActiveTab(profileModalTab || 'account');
       setAccountForm({
         name: currentUser?.name || healthProfile.name || 'Himanshu Gulhane',
-        email: currentUser?.email || 'himanshu@nutriflow.ai',
+        email: currentUser?.email || 'himanshu@wellora.ai',
         phone: currentUser?.phone || '+91 98765 43210',
         dietaryPreference: currentUser?.dietaryPreference || 'Non-Vegetarian',
         homeAddress: 'Flat 402, Green Towers, Tech District, City - 500081',
@@ -361,7 +361,7 @@ export const HealthProfileModal: React.FC = () => {
                 Health & Medical Vitals Manager
               </h3>
               <p className="text-xs text-slate-500">
-                NutriFlow AI recalculates glycemic indexes and macro targets immediately upon updating metrics.
+                Wellora recalculates glycemic indexes and macro targets immediately upon updating metrics.
               </p>
             </div>
 
@@ -471,7 +471,7 @@ export const HealthProfileModal: React.FC = () => {
                   <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
                 </div>
                 <div className="p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
-                  💡 These vitals power the <strong>AI Food Guard</strong> — when your BP or sugar is high, NutriBot will warn you before adding unsafe foods to cart. You can also use the BioScan™ thumb scanner on the dashboard.
+                  💡 These vitals power the <strong>AI Food Guard</strong> — when your BP or sugar is high, Wellora AI will warn you before adding unsafe foods to cart. You can also use the BioScan™ thumb scanner on the dashboard.
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

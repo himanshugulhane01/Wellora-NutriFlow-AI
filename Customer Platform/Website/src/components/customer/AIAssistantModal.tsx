@@ -68,7 +68,7 @@ export const AIAssistantModal: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-base font-['Outfit']">NutriBot AI Clinical Assistant</h3>
+                <h3 className="font-extrabold text-base font-['Outfit']">Wellora AI Clinical Assistant</h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-slate-950">LIVE</span>
               </div>
               <p className="text-xs text-blue-100">Personalized for {healthProfile.name} • {healthProfile.fitnessGoal}</p>

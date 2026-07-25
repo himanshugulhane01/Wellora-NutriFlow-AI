@@ -17,7 +17,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold border border-emerald-500/30">
             <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>NutriFlow Executive Command Center</span>
+            <span>Wellora Executive Command Center</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold font-['Outfit']">
             Admin & AI Monitoring Dashboard

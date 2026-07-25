@@ -1,4 +1,4 @@
-# NutriFlow AI — Database Information
+# Wellora — Database Information
 
 ## Database Technology
 - **Type**: SQLite (file-based, no server required)
@@ -12,8 +12,8 @@
 
 | Name | Email | Password | Role |
 |------|-------|----------|------|
-| Priya Sharma | priya@nutriflow.ai | password123 | CUSTOMER |
-| Admin | admin@nutriflow.ai | password123 | ADMIN |
+| Priya Sharma | priya@wellora.ai | password123 | CUSTOMER |
+| Admin | admin@wellora.ai | password123 | ADMIN |
 
 > **Note**: You can create new accounts via the Sign Up form on the app. All accounts are stored in the database.
 
