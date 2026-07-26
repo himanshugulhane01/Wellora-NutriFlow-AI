@@ -19,7 +19,8 @@ import {
   Compass,
   LogIn,
   LogOut,
-  User
+  User,
+  Settings
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -62,6 +63,7 @@ export const Navbar: React.FC = () => {
     'favorites': { label: 'Favourites', icon: Activity },
     'rewards': { label: 'Rewards', icon: Activity },
     'wallet': { label: 'Wallet', icon: Activity },
+    'settings': { label: 'Settings', icon: Settings },
   };
 
   const handleSelectView = (view: PlatformView) => {

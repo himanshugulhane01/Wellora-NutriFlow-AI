@@ -119,7 +119,11 @@ export const HealthProfileModal: React.FC = () => {
         phone: accountForm.phone,
       });
     }
-    setHealthProfile(prev => ({ ...prev, name: accountForm.name }));
+    setHealthProfile(prev => ({
+      ...prev,
+      name: accountForm.name,
+      dietaryPreference: accountForm.dietaryPreference,
+    }));
     setIsProfileModalOpen(false);
   };
 
@@ -303,17 +307,30 @@ export const HealthProfileModal: React.FC = () => {
                 <p className="text-[10px] text-slate-400">⚡ 1-Click Express Checkout enabled</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2">
-                <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <Utensils className="w-4 h-4 text-amber-500" /> Food Preferences
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-3 sm:col-span-2">
+                <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5 font-['Outfit']">
+                  <Utensils className="w-4 h-4 text-amber-500" /> Dietary Preference
                 </h4>
-                <div className="flex flex-wrap gap-1.5 text-[10px] font-bold">
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
-                    {accountForm.dietaryPreference}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400">
-                    Spice: {accountForm.spiceLevel}
-                  </span>
+                <div className="flex flex-wrap gap-2">
+                  {['Vegetarian', 'Non-Vegetarian', 'Vegan', 'Keto', 'High Protein', 'Jain', 'Eggetarian'].map(pref => {
+                    const isSelected = accountForm.dietaryPreference === pref;
+                    return (
+                      <button
+                        key={pref}
+                        type="button"
+                        id={`profile-diet-btn-${pref.toLowerCase().replace(' ', '-')}`}
+                        onClick={() => setAccountForm(prev => ({ ...prev, dietaryPreference: pref as any }))}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-emerald-600 text-white shadow-md'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-emerald-400'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5" />}
+                        <span>{pref}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

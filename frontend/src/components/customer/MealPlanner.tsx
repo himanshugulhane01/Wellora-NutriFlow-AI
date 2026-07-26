@@ -41,30 +41,41 @@ function adaptSlot(s: any): MealSlot {
   };
 }
 
+import { MOCK_MEALS } from '../../data/mockData';
+
+const DEFAULT_WEEKLY_PLAN: Record<number, Record<string, MealSlot>> = {};
+for (let d = 0; d < 7; d++) {
+  DEFAULT_WEEKLY_PLAN[d] = {
+    Breakfast: { slotId: `d${d}-b`, dayOfWeek: d, mealType: 'Breakfast', meal: { id: MOCK_MEALS[0].id, name: MOCK_MEALS[0].name, imageUrl: MOCK_MEALS[0].image, calories: MOCK_MEALS[0].macros.calories, protein: MOCK_MEALS[0].macros.protein } },
+    Lunch:     { slotId: `d${d}-l`, dayOfWeek: d, mealType: 'Lunch',     meal: { id: MOCK_MEALS[1].id, name: MOCK_MEALS[1].name, imageUrl: MOCK_MEALS[1].image, calories: MOCK_MEALS[1].macros.calories, protein: MOCK_MEALS[1].macros.protein } },
+    Dinner:    { slotId: `d${d}-d`, dayOfWeek: d, mealType: 'Dinner',    meal: { id: MOCK_MEALS[2].id, name: MOCK_MEALS[2].name, imageUrl: MOCK_MEALS[2].image, calories: MOCK_MEALS[2].macros.calories, protein: MOCK_MEALS[2].macros.protein } },
+    Snack:     { slotId: `d${d}-s`, dayOfWeek: d, mealType: 'Snack',     meal: { id: MOCK_MEALS[3].id, name: MOCK_MEALS[3].name, imageUrl: MOCK_MEALS[3].image, calories: MOCK_MEALS[3].macros.calories, protein: MOCK_MEALS[3].macros.protein } },
+  };
+}
+
 export const MealPlanner: React.FC = () => {
   const { setCurrentView, healthProfile } = useApp();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [weeklyPlan, setWeeklyPlan] = useState<Record<number, Record<string, MealSlot>>>({});
+  const [loading, setLoading] = useState(false);
+  const [weeklyPlan, setWeeklyPlan] = useState<Record<number, Record<string, MealSlot>>>(DEFAULT_WEEKLY_PLAN);
 
   const fetchPlan = async () => {
     try {
-      setLoading(true);
       const res = await mealPlansService.getWeekly();
       if (res.success && res.data) {
         const plan = res.data as any;
         const slots: MealSlot[] = (plan.slots || []).map(adaptSlot);
-        const grouped: Record<number, Record<string, MealSlot>> = {};
-        for (let d = 0; d < 7; d++) grouped[d] = {};
-        slots.forEach(s => {
-          if (grouped[s.dayOfWeek]) grouped[s.dayOfWeek][s.mealType] = s;
-        });
-        setWeeklyPlan(grouped);
+        if (slots.length > 0) {
+          const grouped: Record<number, Record<string, MealSlot>> = {};
+          for (let d = 0; d < 7; d++) grouped[d] = {};
+          slots.forEach(s => {
+            if (grouped[s.dayOfWeek]) grouped[s.dayOfWeek][s.mealType] = s;
+          });
+          setWeeklyPlan(grouped);
+        }
       }
     } catch (err) {
-      console.warn('Meal plan fetch failed:', err);
-    } finally {
-      setLoading(false);
+      console.warn('Meal plan fetch failed, using default plan:', err);
     }
   };
 

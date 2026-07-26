@@ -17,7 +17,8 @@ export type PlatformView =
   | 'water-tracker'
   | 'favorites'
   | 'rewards'
-  | 'wallet';
+  | 'wallet'
+  | 'settings';
 
 export type CategoryFilter = 
   | 'All'
@@ -135,6 +136,7 @@ export interface HealthProfile {
   dailyFatTarget: number;
   waterIntakeLiters: number;
   healthScore: number;
+  dietaryPreference?: 'Vegetarian' | 'Non-Vegetarian' | 'Vegan' | 'Eggetarian';
   // Vitals — entered manually or via biometric scanner
   bloodPressureSystolic?: number;   // e.g. 120 (normal) | 140+ (high)
   bloodPressureDiastolic?: number;  // e.g. 80 (normal) | 90+ (high)

@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { NotificationPopover } from './NotificationPopover';
+import { LocationPickerModal } from './LocationPickerModal';
 import {
   Sun, Moon, ShoppingBag, Bot, Menu, Activity,
-  LogOut, MapPin
+  LogOut, MapPin, Bell
 } from 'lucide-react';
 
 interface DashboardHeaderProps {
@@ -14,6 +16,9 @@ interface DashboardHeaderProps {
  * Displays user info, cart, AI, and settings controls.
  */
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOpen }) => {
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [showLocModal, setShowLocModal] = useState(false);
+
   const {
     currentUser,
     isDarkMode,
@@ -27,6 +32,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
     healthProfile,
     logout,
     currentView,
+    userLocation,
+    setUserLocation,
   } = useApp();
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -51,14 +58,19 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
     'wallet': 'Rewards & Wallet',
     'workouts': 'Workouts',
     'favorites': 'Favorites',
+    'settings': 'Settings',
   };
 
   const pageTitle = pageTitles[currentView] || 'Wellora';
 
   return (
-    <header className="sticky top-0 z-40 h-16 bg-white/95 dark:bg-[#091F17]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-emerald-500/10 px-4 lg:px-6 flex items-center justify-between shadow-sm">
+    <header
+      className="sticky top-0 z-40 bg-white/95 dark:bg-[#091F17]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-emerald-500/10 shadow-sm"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
+      <div className="h-16 px-4 lg:px-6 flex items-center justify-between">
 
-      {/* Left: Mobile Menu + Page Title */}
+      {/* Left: Mobile Menu + Page Title & Interactive Location */}
       <div className="flex items-center gap-3">
         <button
           onClick={onMobileMenuOpen}
@@ -72,10 +84,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
             {pageTitle}
           </h1>
           {currentUser && (
-            <p className="text-[10px] text-slate-400 hidden sm:block">
-              <MapPin className="w-2.5 h-2.5 inline mr-1" />
-              Tech District, Block 4B
-            </p>
+            <button
+              onClick={() => setShowLocModal(true)}
+              className="text-[10px] text-slate-400 dark:text-slate-400 hidden sm:flex items-center gap-1 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors font-medium border border-transparent hover:border-slate-200 dark:hover:border-emerald-800/40 px-1.5 py-0.5 rounded-lg"
+            >
+              <MapPin className="w-2.5 h-2.5 text-emerald-500" />
+              <span>{userLocation}</span>
+            </button>
           )}
         </div>
       </div>
@@ -118,6 +133,16 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
         >
           <Bot className="w-4 h-4" />
           <span className="hidden sm:inline">AI Coach</span>
+        </button>
+
+        {/* Notifications */}
+        <button
+          onClick={() => setIsNotificationsOpen(prev => !prev)}
+          className="relative p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          aria-label="Notifications"
+        >
+          <Bell className="w-5 h-5" />
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
         </button>
 
         {/* Cart */}
@@ -173,6 +198,21 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
             </button>
           </div>
         )}
+      </div>
+
+      {/* Notification Popover */}
+      <NotificationPopover
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+      />
+
+      {/* Location Picker Modal (Interactive Map & Address Form) */}
+      <LocationPickerModal
+        isOpen={showLocModal}
+        onClose={() => setShowLocModal(false)}
+        currentLocation={userLocation}
+        onLocationSave={(newAddr) => setUserLocation(newAddr)}
+      />
       </div>
     </header>
   );

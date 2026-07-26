@@ -28,6 +28,7 @@ import { HealthyFoods } from './components/customer/HealthyFoods';
 import { HealthReports } from './components/customer/HealthReports';
 import { WaterTracker } from './components/customer/WaterTracker';
 import { RewardsWallet } from './components/customer/RewardsWallet';
+import { SettingsPage } from './components/customer/SettingsPage';
 import { LandingNavbar } from './components/common/LandingNavbar';
 import { DashboardHeader } from './components/common/DashboardHeader';
 import { Footer } from './components/common/Footer';
@@ -139,12 +140,10 @@ const MainContent: React.FC = () => {
       )}
 
       {/* Right side: Header + Main Content + Mobile Bottom Bar */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen pb-20 lg:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen pb-20 lg:pb-0 safe-x">
 
-        {/* Dashboard Header (visible on all dashboard views except user dashboard) */}
-        {currentView !== 'dashboard' && (
-          <DashboardHeader onMobileMenuOpen={() => setIsMobileSidebarOpen(true)} />
-        )}
+        {/* Dashboard Header (visible on all dashboard views) */}
+        <DashboardHeader onMobileMenuOpen={() => setIsMobileSidebarOpen(true)} />
 
         {/* Dynamic Main View */}
         <main className="flex-1">
@@ -164,14 +163,15 @@ const MainContent: React.FC = () => {
           {currentView === 'water-tracker' && <WaterTracker />}
           {currentView === 'rewards' && <RewardsWallet />}
           {currentView === 'wallet' && <RewardsWallet />}
+          {currentView === 'settings' && <SettingsPage />}
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-[#091F17]/95 backdrop-blur-md border-t border-slate-200/80 dark:border-emerald-500/10 flex items-center justify-around z-40 lg:hidden px-2 shadow-2xl">
+      {/* Mobile Bottom Navigation — with safe-area for iPhone home indicator */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-[#091F17]/95 backdrop-blur-md border-t border-slate-200/80 dark:border-emerald-500/10 flex items-center justify-around z-40 lg:hidden px-2 shadow-2xl bottom-nav-safe" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))', paddingTop: '0.5rem', minHeight: '3.5rem' }}>
         <button
           onClick={() => setCurrentView('dashboard')}
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold ${currentView === 'dashboard' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}
+          className={`flex flex-col items-center gap-1 py-1 px-3 text-[10px] font-bold touch-target transition-all ${currentView === 'dashboard' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}
         >
           <LayoutDashboard className="w-5 h-5" />
           <span>Home</span>
@@ -179,7 +179,7 @@ const MainContent: React.FC = () => {
 
         <button
           onClick={() => setCurrentView('marketplace')}
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold ${currentView === 'marketplace' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}
+          className={`flex flex-col items-center gap-1 py-1 px-3 text-[10px] font-bold touch-target transition-all ${currentView === 'marketplace' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}
         >
           <Compass className="w-5 h-5" />
           <span>Explore</span>
@@ -187,15 +187,17 @@ const MainContent: React.FC = () => {
 
         <button
           onClick={() => setIsAIModalOpen(true)}
-          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400"
+          className="flex flex-col items-center gap-1 py-1 px-3 text-[10px] font-bold text-slate-400 touch-target"
         >
-          <Bot className="w-5 h-5 text-blue-500 animate-bounce" />
-          <span>AI Coach</span>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg -mt-4 border-2 border-white dark:border-[#091F17]">
+            <Bot className="w-5 h-5 text-white" />
+          </div>
+          <span className="mt-0.5">AI Coach</span>
         </button>
 
         <button
           onClick={() => setIsCartOpen(true)}
-          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400"
+          className="flex flex-col items-center gap-1 py-1 px-3 text-[10px] font-bold text-slate-400 touch-target transition-all"
         >
           <ShoppingBag className="w-5 h-5" />
           <span>Orders</span>
@@ -203,7 +205,7 @@ const MainContent: React.FC = () => {
 
         <button
           onClick={() => openProfileModal('account')}
-          className="flex flex-col items-center gap-1 text-[10px] font-bold text-slate-400"
+          className="flex flex-col items-center gap-1 py-1 px-3 text-[10px] font-bold text-slate-400 touch-target transition-all"
         >
           <User className="w-5 h-5" />
           <span>Profile</span>

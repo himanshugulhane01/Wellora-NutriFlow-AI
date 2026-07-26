@@ -1,6 +1,6 @@
-// Base API client — all requests go through Vite's proxy to http://localhost:3001
-
-const BASE_URL = '/api';
+// Base API client — uses VITE_API_URL if set (production), or local proxy /api
+const SERVER_URL = import.meta.env.VITE_API_URL || '';
+const BASE_URL = `${SERVER_URL}/api`;
 
 type RequestOptions = {
   method?: string;

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Meal } from '../../types';
+import { getMealRiskFromVitals } from '../../services/medicalEngine';
 import {
   AlertTriangle, X, ShieldAlert, Heart, Droplets, Flame,
   ArrowRight, CheckCircle, Info
@@ -35,6 +36,16 @@ export const analyzeFoodRisk = (
   const tags = meal.dietaryBadges?.join(' ').toLowerCase() || '';
   const macros = meal.macros;
 
+  // ─── Run medical engine risk assessment ─────────────────────────────────────
+  const risk = getMealRiskFromVitals({
+    systolicBP:  vitals.bloodPressureSystolic,
+    diastolicBP: vitals.bloodPressureDiastolic,
+    bloodSugar:  vitals.bloodSugarFasting,
+    cholesterol: vitals.cholesterolTotal,
+    heartRate:   vitals.heartRateBpm,
+    diseases,
+  });
+
   // Detect food type from name/tags
   const isPizza    = name.includes('pizza');
   const isBurger   = name.includes('burger') || name.includes('sandwich');
@@ -43,97 +54,96 @@ export const analyzeFoodRisk = (
   const isHighSalt = macros.calories > 400 && (isPizza || isBurger || isFried);
   const isHighGI   = !tags.includes('low gi') && !tags.includes('low-gi') && macros.carbs > 45;
   const isHighFat  = macros.fat > 25;
+  const isCaffeine = name.includes('coffee') || name.includes('espresso') || name.includes('energy drink');
 
-  // Check against HIGH BLOOD PRESSURE
-  const systolic  = vitals.bloodPressureSystolic;
-  const diastolic = vitals.bloodPressureDiastolic;
-  if (systolic && systolic >= 130) {
-    if (isPizza || isBurger || isHighSalt || isFried) {
-      return {
-        level: systolic >= 140 ? 'block' : 'caution',
-        reason: 'High Blood Pressure Alert',
-        detail: `Based on your scan today, your BP is elevated (${systolic}/${diastolic ?? '?'} mmHg). ${meal.name} is high in sodium (~980mg), which can spike blood pressure. Please avoid this today or swap to a low-sodium meal!`,
-        metric: `Today's Scanned BP: ${systolic}/${diastolic ?? '?'} mmHg (${systolic >= 140 ? 'High BP Alert' : 'Elevated BP'})`,
-        icon: Heart,
-        color: 'red',
-      };
-    }
-  }
-
-  // Check against HIGH BLOOD SUGAR / DIABETES
-  const sugar = vitals.bloodSugarFasting;
-  if (sugar && sugar >= 100) {
-    if (isSweet || isHighGI) {
-      return {
-        level: sugar >= 126 ? 'block' : 'caution',
-        reason: 'Blood Sugar Risk',
-        detail: `This item has a high Glycemic Index (GI ${macros.glycemicIndex ?? '~60+'}). For your fasting blood sugar of ${sugar} mg/dL, this can cause a sharp glucose spike.`,
-        metric: `Your Blood Sugar: ${sugar} mg/dL (${sugar >= 126 ? 'Diabetic Range' : 'Pre-Diabetic Range'})`,
-        icon: Droplets,
-        color: 'blue',
-      };
-    }
-  }
-
-  // Check against DISEASES (even without vitals)
-  const hasHypertension = diseases.some(d => d.toLowerCase().includes('hypertension') || d.toLowerCase().includes('bp') || d.toLowerCase().includes('blood pressure'));
-  const hasDiabetes     = diseases.some(d => d.toLowerCase().includes('diabetes') || d.toLowerCase().includes('diabetic'));
-  const hasPCOS         = diseases.some(d => d.toLowerCase().includes('pcos'));
-  const hasHeartDisease = diseases.some(d => d.toLowerCase().includes('heart') || d.toLowerCase().includes('cardiac'));
-  const hasKidney       = diseases.some(d => d.toLowerCase().includes('kidney'));
-
-  if (hasHypertension && (isPizza || isBurger || isHighSalt || isFried)) {
+  // ─── BP-based warnings (AHA/ACC 2018 thresholds via engine) ─────────────────
+  if (risk.highBP && (isPizza || isBurger || isHighSalt || isFried)) {
+    const s = vitals.bloodPressureSystolic!;
+    const d = vitals.bloodPressureDiastolic;
     return {
-      level: 'block',
-      reason: 'Hypertension Diet Conflict',
-      detail: `You have Hypertension in your health profile. ${meal.name} is high in sodium & saturated fats, which can significantly raise blood pressure. This conflicts with your DASH diet requirements.`,
-      metric: 'Condition: Hypertension (from your health profile)',
+      level: risk.critBP ? 'block' : 'caution',
+      reason: risk.critBP ? 'Stage 2 Hypertension Alert' : 'Elevated Blood Pressure Alert',
+      detail: `${risk.details.bp ? `Your BP is ${risk.details.bp}. ` : ''}${meal.name} is high in sodium (~900–1200mg), which directly raises blood pressure. ${
+        risk.critBP
+          ? 'AHA/ACC 2018: Stage 2 HT (≥140 mmHg) — sodium restriction is critical. Avoid this food today.'
+          : 'AHA/ACC 2018: Even Stage 1 HT (130–139) is worsened by high-sodium meals.'
+      }`,
+      metric: risk.details.bp ? `Scanned BP: ${risk.details.bp}` : `Disease: Hypertension (from your health profile)`,
       icon: Heart,
       color: 'red',
     };
   }
 
-  if (hasDiabetes && (isSweet || isHighGI)) {
+  // ─── Blood sugar / Diabetes warnings (ADA 2024 thresholds) ──────────────────
+  if (risk.highSugar && (isSweet || isHighGI)) {
+    const bs = vitals.bloodSugarFasting;
     return {
-      level: 'block',
-      reason: 'Diabetes Diet Conflict',
-      detail: `You have Diabetes in your health profile. ${meal.name} has a high Glycemic Index of ${macros.glycemicIndex ?? '~65+'}, which will cause rapid blood sugar elevation.`,
-      metric: 'Condition: Diabetes (from your health profile)',
+      level: risk.critSugar ? 'block' : 'caution',
+      reason: risk.critSugar ? 'Diabetic Range Blood Sugar' : 'Pre-Diabetic Sugar Alert',
+      detail: `${risk.details.sugar ? `Your fasting glucose is ${risk.details.sugar}. ` : ''}${meal.name} has a high Glycemic Index (GI ${macros.glycemicIndex ?? '~65+'}), causing rapid glucose spike. ${
+        risk.critSugar
+          ? 'ADA 2024: At ≥126 mg/dL fasting, high-GI foods cause dangerous glucose excursions.'
+          : 'ADA 2024: Pre-diabetic range (100–125 mg/dL) — high-GI foods worsen insulin resistance.'
+      }`,
+      metric: risk.details.sugar ? `Fasting Glucose: ${risk.details.sugar}` : 'Condition: Diabetes (from your health profile)',
       icon: Droplets,
       color: 'blue',
     };
   }
 
-  if (hasHeartDisease && (isFried || isHighFat)) {
+  // ─── Cholesterol / Heart disease (ACC/AHA 2019 + NCEP ATP III) ───────────────
+  const hasHeartDisease = diseases.some(d => d.toLowerCase().includes('heart') || d.toLowerCase().includes('cardiac'));
+  if ((risk.highChol || hasHeartDisease) && (isFried || isHighFat)) {
     return {
-      level: 'caution',
-      reason: 'Heart Health Caution',
-      detail: `You have Heart Disease in your profile. This item contains ${macros.fat}g of fat. High-fat fried foods can increase LDL cholesterol and arterial plaque.`,
-      metric: 'Condition: Heart Disease (from your health profile)',
+      level: hasHeartDisease ? 'block' : 'caution',
+      detail: `${risk.details.chol ? `Your total cholesterol is ${risk.details.chol}. ` : ''}${meal.name} contains ${macros.fat}g fat. ${
+        hasHeartDisease
+          ? 'With heart disease, ACC/AHA 2019 recommends high-intensity statin therapy and dietary fat restriction.'
+          : 'NCEP ATP III: Cholesterol ≥200 mg/dL — saturated/trans fat intake must be reduced.'
+      }`,
+      reason: hasHeartDisease ? 'Heart Disease Diet Conflict' : 'High Cholesterol Caution',
+      metric: risk.details.chol || 'Condition: Heart Disease',
       icon: Heart,
       color: 'red',
     };
   }
 
+  // ─── PCOS — insulin resistance (PCOS Society of India 2022) ─────────────────
+  const hasPCOS = diseases.some(d => d.toLowerCase().includes('pcos'));
   if (hasPCOS && isHighGI) {
     return {
       level: 'caution',
       reason: 'PCOS Insulin Response Alert',
-      detail: `High-GI foods trigger insulin spikes which worsen PCOS hormonal imbalance. This item's GI of ${macros.glycemicIndex ?? '~55+'} is above the recommended limit of 40 for PCOS.`,
+      detail: `High-GI foods trigger insulin spikes that worsen PCOS hormonal imbalance (PCOS Society of India 2022). GI of ~${macros.glycemicIndex ?? '55+'} is above the recommended limit of 40 for PCOS management.`,
       metric: 'Condition: PCOS (from your health profile)',
       icon: Flame,
       color: 'orange',
     };
   }
 
+  // ─── Kidney Disease (KDIGO 2021) ─────────────────────────────────────────────
+  const hasKidney = diseases.some(d => d.toLowerCase().includes('kidney') || d.toLowerCase().includes('ckd'));
   if (hasKidney && isHighSalt) {
     return {
       level: 'caution',
-      reason: 'Kidney Diet Alert',
-      detail: `Kidney disease requires strict sodium control. This item is high in sodium which increases the filtration burden on your kidneys.`,
-      metric: 'Condition: Kidney Disease (from your health profile)',
-      icon: ShieldAlert,
+      reason: 'Kidney Disease Sodium Alert',
+      detail: `KDIGO 2021: CKD requires strict sodium restriction (<2.3g/day). High-sodium foods increase fluid retention, raise BP, and accelerate kidney function decline.`,
+      metric: 'Condition: CKD/Kidney Disease (from your health profile)',
+      icon: Heart,
       color: 'purple',
+    };
+  }
+
+  // ─── Tachycardia + Caffeine ──────────────────────────────────────────────────
+  const hrHigh = (vitals.heartRateBpm || 0) >= 100;
+  if (hrHigh && isCaffeine) {
+    return {
+      level: 'caution',
+      reason: 'Elevated Heart Rate + Caffeine',
+      detail: `Your resting heart rate is ${vitals.heartRateBpm} bpm (above normal). Caffeine increases HR by 5–15 bpm (AHA). Avoid caffeine-containing foods/drinks until HR normalizes.`,
+      metric: `Heart Rate: ${vitals.heartRateBpm} bpm (AHA normal: 60–100 bpm)`,
+      icon: Flame,
+      color: 'orange',
     };
   }
 

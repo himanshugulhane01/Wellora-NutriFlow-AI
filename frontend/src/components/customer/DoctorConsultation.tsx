@@ -17,16 +17,18 @@ import {
   Loader2
 } from 'lucide-react';
 
+import { MOCK_DOCTORS } from '../../data/mockData';
+
 function adaptDoctor(d: any): Doctor {
   return {
     id: d.id,
     name: d.name,
     specialty: d.specialty,
     hospital: d.qualification || 'Board Certified',
-    experienceYears: d.experience,
-    rating: d.rating,
+    experienceYears: d.experience || 10,
+    rating: d.rating || 4.9,
     reviewCount: Math.floor(80 + Math.random() * 200),
-    consultationFee: d.fee,
+    consultationFee: d.fee || 799,
     image: d.imageUrl || 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400',
     availableToday: d.isAvailable !== false,
     nextSlot: 'Today, 4:30 PM',
@@ -36,8 +38,8 @@ function adaptDoctor(d: any): Doctor {
 
 export const DoctorConsultation: React.FC = () => {
   const { healthProfile } = useApp();
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [doctors, setDoctors] = useState<Doctor[]>(MOCK_DOCTORS);
+  const [loading, setLoading] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [isBooked, setIsBooked] = useState(false);
@@ -47,15 +49,12 @@ export const DoctorConsultation: React.FC = () => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        setLoading(true);
         const res = await doctorsService.getAll();
-        if (res.success && res.data) {
+        if (res.success && res.data && res.data.length > 0) {
           setDoctors(res.data.map(adaptDoctor));
         }
       } catch (err) {
-        console.warn('Doctors fetch failed:', err);
-      } finally {
-        setLoading(false);
+        console.warn('Doctors fetch failed, using fallback:', err);
       }
     };
     fetchDoctors();

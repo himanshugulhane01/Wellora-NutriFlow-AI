@@ -9,6 +9,11 @@
     --warning: #F59E0B;
     --danger: #EF4444;
     --bg-light: #F7FAF9; /* Soft botanical off-white */
+    /* Safe Area Environment Variables for notched phones */
+    --sat: env(safe-area-inset-top, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
   }
 
   body {
@@ -16,13 +21,34 @@
     background-color: var(--bg-light);
     color: #0F172A;
     overflow-x: hidden;
+    /* Native-like smooth scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent overscroll bounce background flash */
+    overscroll-behavior: none;
   }
 
   #root {
     width: 100%;
     min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height — handles iOS keyboard */
     margin: 0;
     padding: 0;
+  }
+
+  /* ── Mobile Touch UI Improvements ────────────────────────────── */
+
+  /* Remove blue tap highlight on all elements (native app feel) */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  /* Re-enable text selection for form inputs & content */
+  input, textarea, select, p, h1, h2, h3, h4, h5, h6, span {
+    -webkit-touch-callout: default;
+  }
+  input, textarea, select {
+    user-select: text;
   }
 }
 
@@ -132,4 +158,68 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
+}
+
+/* ── Safe Area Utilities (for iPhone notch / Dynamic Island / Android punch-hole) ── */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.safe-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Extend header to fill status bar area on notched phones */
+.header-safe {
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+}
+
+/* Bottom nav safe area — sits above home indicator on iPhone */
+.bottom-nav-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Native-like Scroll Momentum ── */
+.native-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+}
+
+/* ── Touch Target Size Compliance (WCAG 2.5.8 / Apple HIG — 44pt minimum) ── */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Mobile Card Interactions ── */
+@media (hover: none) and (pointer: coarse) {
+  /* Reduce hover delays on touchscreens */
+  * {
+    transition-duration: 0.1s;
+  }
+  /* Stronger active state feedback for touch */
+  button:active, a:active {
+    opacity: 0.7;
+    transform: scale(0.97);
+  }
+}
+
+/* ── Status Bar Dark Mode (Android WebView) ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
 }

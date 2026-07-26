@@ -92,7 +92,7 @@ const healthyMeals: (Meal & { healthTag: string; tags: string[] })[] = [
 ];
 
 export const HealthyFoods: React.FC = () => {
-  const { addToCart, cart } = useApp();
+  const { addToCart, removeFromCart, cart } = useApp();
   const [activeCategory, setActiveCategory] = useState('all');
 
   const filtered = activeCategory === 'all'
@@ -222,8 +222,9 @@ export const HealthyFoods: React.FC = () => {
                     </button>
                   ) : (
                     <div className="flex items-center gap-2 px-2 py-1 rounded-xl bg-green-500/10 border border-green-500/30">
-                      <button onClick={() => addToCart(meal)} className="w-6 h-6 rounded-lg bg-green-500 text-white flex items-center justify-center text-xs font-bold">+</button>
+                      <button onClick={() => removeFromCart(meal.id)} className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-bold">-</button>
                       <span className="text-xs font-bold text-green-600 dark:text-green-400 min-w-[16px] text-center">{qty}</span>
+                      <button onClick={() => addToCart(meal)} className="w-6 h-6 rounded-lg bg-green-500 text-white flex items-center justify-center text-xs font-bold">+</button>
                     </div>
                   )}
                 </div>

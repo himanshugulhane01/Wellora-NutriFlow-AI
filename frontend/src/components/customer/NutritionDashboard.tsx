@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { nutritionService } from '../../services';
 import {
   Flame,
   Activity,
@@ -9,321 +8,275 @@ import {
   TrendingUp,
   Heart,
   Plus,
-  Loader2
+  Info
 } from 'lucide-react';
 
-interface DailyLog {
-  id: string;
-  mealName: string;
-  mealType: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number;
-  loggedAt: string;
-}
-
-interface WeeklySummary {
-  date: string;
-  totalCalories: number;
-  totalProtein: number;
-  totalCarbs: number;
-  totalFat: number;
-}
+const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const NutritionDashboard: React.FC = () => {
-  const { healthProfile } = useApp();
-  const [consumedCalories, setConsumedCalories] = useState(0);
-  const [consumedProtein, setConsumedProtein] = useState(0);
-  const [consumedWater, setConsumedWater] = useState(2.2);
-  const [todayLogs, setTodayLogs] = useState<DailyLog[]>([]);
-  const [weeklyData, setWeeklyData] = useState<WeeklySummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { healthProfile, dailyIntake, addWater, cart, ordersHistory } = useApp();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [dailyRes, weeklyRes] = await Promise.all([
-          nutritionService.getDaily(),
-          nutritionService.getWeekly(),
-        ]);
+  // Get current day of week index (Monday = 0, Sunday = 6)
+  const todayIdx = (new Date().getDay() + 6) % 7;
 
-        if (dailyRes.success && dailyRes.data) {
-          const d = dailyRes.data as any;
-          setConsumedCalories(d.totals?.calories || 0);
-          setConsumedProtein(d.totals?.protein || 0);
-          setTodayLogs(d.logs || []);
-        }
+  // Real-time daily totals from AppContext
+  const consumedCalories = dailyIntake.calories;
+  const consumedProtein  = dailyIntake.protein;
+  const consumedCarbs    = dailyIntake.carbs;
+  const consumedFat      = dailyIntake.fat;
+  const consumedWater    = dailyIntake.water;
 
-        if (weeklyRes.success && weeklyRes.data) {
-          setWeeklyData(weeklyRes.data as WeeklySummary[]);
-        }
-      } catch (err) {
-        console.warn('Nutrition fetch failed:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const calTarget     = healthProfile.dailyCalorieTarget || 2000;
+  const proteinTarget = healthProfile.dailyProteinTarget || 100;
+  const waterTarget   = healthProfile.waterIntakeLiters  || 2.5;
 
-  const calPercentage = Math.min(100, healthProfile.dailyCalorieTarget > 0
-    ? Math.round((consumedCalories / healthProfile.dailyCalorieTarget) * 100) : 0);
-  const proteinPercentage = Math.min(100, healthProfile.dailyProteinTarget > 0
-    ? Math.round((consumedProtein / healthProfile.dailyProteinTarget) * 100) : 0);
-  const waterTarget = healthProfile.waterIntakeLiters || 2.5;
-  const waterPercentage = Math.min(100, Math.round((consumedWater / waterTarget) * 100));
+  const calPercentage     = Math.min(100, Math.round((consumedCalories / calTarget) * 100));
+  const proteinPercentage = Math.min(100, Math.round((consumedProtein / proteinTarget) * 100));
+  const waterPercentage   = Math.min(100, Math.round((consumedWater / waterTarget) * 100));
 
-  const addWater = () => {
-    setConsumedWater(prev => +(prev + 0.25).toFixed(2));
-  };
+  // Dynamic Weekly Chart — Starts at 0 for unrecorded days
+  const weeklyData = dayLabels.map((label, idx) => {
+    if (idx === todayIdx) {
+      return { label, calories: consumedCalories, protein: consumedProtein };
+    }
+    return { label, calories: 0, protein: 0 };
+  });
 
-  const weeklyBarData = weeklyData.length > 0 ? weeklyData.slice(-7) : [
-    { date: 'Mon', totalCalories: 1420, totalProtein: 88 },
-    { date: 'Tue', totalCalories: 1580, totalProtein: 92 },
-    { date: 'Wed', totalCalories: 1500, totalProtein: 96 },
-    { date: 'Thu', totalCalories: 1740, totalProtein: 84 },
-    { date: 'Fri', totalCalories: 1900, totalProtein: 102 },
-    { date: 'Sat', totalCalories: 1280, totalProtein: 90 },
-    { date: 'Sun', totalCalories: consumedCalories || 1520, totalProtein: consumedProtein || 94 },
-  ];
+  const maxCal = Math.max(...weeklyData.map(d => d.calories), calTarget, 1);
+  const maxPro = Math.max(...weeklyData.map(d => d.protein), proteinTarget, 1);
 
-  const maxCal = Math.max(...weeklyBarData.map(d => d.totalCalories), 1);
-  const maxPro = Math.max(...weeklyBarData.map(d => d.totalProtein), 1);
+  // Recent logged meals from orders history or active cart
+  const activeLogs = ordersHistory.flatMap(o => o.items).map(item => ({
+    name: item.meal.name,
+    calories: item.meal.macros.calories * item.quantity,
+    protein: item.meal.macros.protein * item.quantity,
+    time: 'Today',
+    image: item.meal.image,
+  }));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 font-sans">
 
-      {/* Top Banner Header */}
+      {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20">
             <Activity className="w-3.5 h-3.5" />
-            <span>Biometric Longevity Telemetry</span>
+            <span>Live Nutrition Analytics</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white font-['Outfit']">
-            AI Nutrition & Health Analytics
+            Nutrition & Macro Dashboard
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Real-time biometric sync with continuous glucose monitoring & macro compliance.
+            Track calories, macros, and hydration in real time. Updates automatically with every order.
           </p>
         </div>
 
         <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-black text-xl font-['Outfit']">
-            {healthProfile.healthScore}
+          <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg">
+            {calPercentage}%
           </div>
           <div>
-            <div className="text-xs text-slate-400 font-semibold uppercase">Overall Health Score</div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white">Optimal Metabolism Zone</div>
+            <div className="text-xs text-slate-400 font-bold uppercase">Daily Goal Progress</div>
+            <div className="text-sm font-extrabold text-slate-900 dark:text-white font-['Outfit']">
+              {consumedCalories} / {calTarget} kcal
+            </div>
           </div>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+      {/* ── 3 CORE METRIC CARDS ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        {/* Calories Card */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#0A1F16] border border-slate-200 dark:border-emerald-500/15 shadow-lg space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center">
+              <Flame className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-500">
+              {calPercentage}% of Goal
+            </span>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Calories Consumed</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white font-['Outfit'] mt-1">
+              {consumedCalories} <span className="text-xs font-bold text-slate-400">/ {calTarget} kcal</span>
+            </p>
+          </div>
+          <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+            <div className="h-full bg-orange-500 rounded-full transition-all duration-500" style={{ width: `${calPercentage}%` }} />
+          </div>
+          <p className="text-[11px] text-slate-400 font-medium">
+            {Math.max(0, calTarget - consumedCalories)} kcal remaining today
+          </p>
         </div>
-      ) : (
-        <>
-          {/* Main Gauges Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            {/* Gauge 1: Calories */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center font-bold">
-                    <Flame className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white font-['Outfit']">Daily Energy Target</h3>
-                    <p className="text-xs text-slate-400">{consumedCalories} / {healthProfile.dailyCalorieTarget} kcal</p>
-                  </div>
+        {/* Protein Card */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#0A1F16] border border-slate-200 dark:border-emerald-500/15 shadow-lg space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+              <Award className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500">
+              {proteinPercentage}% of Goal
+            </span>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Protein Target</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white font-['Outfit'] mt-1">
+              {consumedProtein}g <span className="text-xs font-bold text-slate-400">/ {proteinTarget}g</span>
+            </p>
+          </div>
+          <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-500 rounded-full transition-all duration-500" style={{ width: `${proteinPercentage}%` }} />
+          </div>
+          <p className="text-[11px] text-slate-400 font-medium">
+            {Math.max(0, proteinTarget - consumedProtein)}g protein remaining today
+          </p>
+        </div>
+
+        {/* Water Hydration Card */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#0A1F16] border border-slate-200 dark:border-emerald-500/15 shadow-lg space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+              <Droplets className="w-5 h-5" />
+            </div>
+            <button
+              onClick={() => addWater(0.25)}
+              className="px-3 py-1 rounded-full bg-cyan-500 text-white text-xs font-bold hover:bg-cyan-600 transition-colors flex items-center gap-1 shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" /> +250ml
+            </button>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Water Hydration</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-white font-['Outfit'] mt-1">
+              {consumedWater.toFixed(1)}L <span className="text-xs font-bold text-slate-400">/ {waterTarget.toFixed(1)}L</span>
+            </p>
+          </div>
+          <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+            <div className="h-full bg-cyan-500 rounded-full transition-all duration-500" style={{ width: `${waterPercentage}%` }} />
+          </div>
+          <p className="text-[11px] text-slate-400 font-medium">
+            {Math.max(0, +(waterTarget - consumedWater).toFixed(1))}L remaining today
+          </p>
+        </div>
+
+      </div>
+
+      {/* ── CHARTS SECTION ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        {/* Weekly Calorie Breakdown */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-['Outfit']">Weekly Calorie Trend</h3>
+              <p className="text-xs text-slate-400">Live intake by day of week</p>
+            </div>
+            <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
+              <TrendingUp className="w-3.5 h-3.5" /> Real-time
+            </span>
+          </div>
+
+          <div className="grid grid-cols-7 gap-3 items-end h-48 pt-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+            {weeklyData.map((d, idx) => {
+              const isToday = idx === todayIdx;
+              const barHeightPct = d.calories > 0 ? Math.max(12, Math.round((d.calories / maxCal) * 100)) : 4;
+              return (
+                <div key={idx} className="flex flex-col items-center gap-1.5 h-full justify-end group">
+                  <span className="text-[9px] font-extrabold text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {d.calories} kcal
+                  </span>
+                  <div
+                    className={`w-full rounded-t-xl transition-all duration-300 ${
+                      isToday
+                        ? 'bg-gradient-to-t from-orange-600 to-amber-400 shadow-md shadow-orange-500/20'
+                        : d.calories > 0
+                          ? 'bg-gradient-to-t from-slate-600 to-slate-400'
+                          : 'bg-slate-100 dark:bg-slate-800'
+                    }`}
+                    style={{ height: `${barHeightPct}%` }}
+                  />
+                  <span className={`text-[10px] font-extrabold ${isToday ? 'text-orange-500' : 'text-slate-400'}`}>
+                    {d.label}
+                  </span>
                 </div>
-                <span className="text-lg font-black text-orange-500 font-['Outfit']">{calPercentage}%</span>
-              </div>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-slate-400 text-center font-medium">
+            Today is <strong className="text-slate-700 dark:text-slate-200">{dayLabels[todayIdx]}</strong>. Bars fill up live as you order meals.
+          </p>
+        </div>
 
-              <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-700" style={{ width: `${calPercentage}%` }}></div>
-              </div>
+        {/* Macro Ratio Breakdown */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-['Outfit']">Macronutrient Ratio</h3>
+              <p className="text-xs text-slate-400">Protein vs Carbs vs Fat</p>
+            </div>
+          </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>Remaining: <strong className="text-slate-900 dark:text-white">{Math.max(0, healthProfile.dailyCalorieTarget - consumedCalories)} kcal</strong></span>
-                <span className="text-emerald-500 font-bold">Calorie Deficit</span>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <span>Protein</span>
+                <span>{consumedProtein}g</span>
+              </div>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${proteinPercentage}%` }} />
               </div>
             </div>
 
-            {/* Gauge 2: Protein Target */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
-                    <Activity className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white font-['Outfit']">Bio-Protein Goal</h3>
-                    <p className="text-xs text-slate-400">{consumedProtein}g / {healthProfile.dailyProteinTarget}g protein</p>
-                  </div>
-                </div>
-                <span className="text-lg font-black text-emerald-500 font-['Outfit']">{proteinPercentage}%</span>
+            <div>
+              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <span>Carbohydrates</span>
+                <span>{consumedCarbs}g</span>
               </div>
-
-              <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700" style={{ width: `${proteinPercentage}%` }}></div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-slate-500">
-                <span>Needed: <strong className="text-slate-900 dark:text-white">{Math.max(0, healthProfile.dailyProteinTarget - consumedProtein)}g</strong></span>
-                <span className="text-emerald-500 font-bold">Muscle Repair Safe</span>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${Math.min(100, Math.round((consumedCarbs / 250) * 100))}%` }} />
               </div>
             </div>
 
-            {/* Gauge 3: Hydration */}
-            <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold">
-                    <Droplets className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white font-['Outfit']">Hydration Telemetry</h3>
-                    <p className="text-xs text-slate-400">{consumedWater}L / {waterTarget}L</p>
-                  </div>
-                </div>
-                <span className="text-lg font-black text-blue-500 font-['Outfit']">{waterPercentage}%</span>
+            <div>
+              <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <span>Fats</span>
+                <span>{consumedFat}g</span>
               </div>
-
-              <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-700" style={{ width: `${waterPercentage}%` }}></div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <button
-                  onClick={addWater}
-                  className="px-3 py-1 rounded-xl bg-blue-500 text-white font-bold flex items-center gap-1 hover:bg-blue-600 transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" /> +250ml Glass
-                </button>
-                <span className="text-blue-500 font-bold">Hydration Optimal</span>
+              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${Math.min(100, Math.round((consumedFat / 65) * 100))}%` }} />
               </div>
             </div>
           </div>
 
-          {/* Weekly Visual Progress Chart Bar */}
-          <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white font-['Outfit']">
-                  7-Day Macro & Calorie Trends
-                </h2>
-                <p className="text-xs text-slate-500">Continuous AI assessment against target glycemic window</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1 text-xs font-bold text-emerald-500">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Protein
-                </span>
-                <span className="flex items-center gap-1 text-xs font-bold text-orange-500">
-                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span> Calories
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-3 items-end h-48 pt-6 border-b border-slate-100 dark:border-slate-800 pb-2">
-              {weeklyBarData.map((item, idx) => {
-                const calH = maxCal > 0 ? Math.round((item.totalCalories / maxCal) * 100) : 0;
-                const proH = maxPro > 0 ? Math.round((item.totalProtein / maxPro) * 100) : 0;
-                const label = typeof item.date === 'string' && item.date.length <= 3 ? item.date :
-                  new Date(item.date).toLocaleDateString('en', { weekday: 'short' });
-                const isToday = idx === weeklyBarData.length - 1;
-                return (
-                  <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
-                    <div className="w-full flex items-end justify-center gap-1.5 h-full">
-                      <div
-                        className="w-3 sm:w-5 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-lg transition-all group-hover:brightness-110"
-                        style={{ height: `${proH}%` }}
-                      ></div>
-                      <div
-                        className="w-3 sm:w-5 bg-gradient-to-t from-orange-500 to-amber-400 rounded-t-lg transition-all group-hover:brightness-110"
-                        style={{ height: `${calH}%` }}
-                      ></div>
-                    </div>
-                    <span className={`text-[11px] font-bold transition-colors ${isToday ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400 group-hover:text-emerald-500'}`}>
-                      {isToday ? 'Today' : label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Today's Log */}
-          {todayLogs.length > 0 && (
-            <div className="p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg space-y-4">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white font-['Outfit']">Today's Food Log</h2>
+          {/* Today's Orders Logged */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block mb-2">Today's Logged Meals ({activeLogs.length})</span>
+            {activeLogs.length > 0 ? (
               <div className="space-y-2">
-                {todayLogs.map(log => (
-                  <div key={log.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50">
-                    <div>
-                      <p className="text-xs font-bold text-slate-900 dark:text-white">{log.mealName}</p>
-                      <p className="text-[10px] text-slate-400">{log.mealType} &bull; {new Date(log.loggedAt).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}</p>
+                {activeLogs.map((log, i) => (
+                  <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <img src={log.image} alt={log.name} className="w-8 h-8 rounded-lg object-cover" />
+                      <span className="text-xs font-bold text-slate-800 dark:text-white truncate">{log.name}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs font-bold">
-                      <span className="text-orange-500">{log.calories} kcal</span>
-                      <span className="text-emerald-500">{log.protein}g P</span>
-                    </div>
+                    <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 shrink-0">+{log.calories} kcal</span>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Health Badges & Achievements */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                <Award className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="font-bold text-sm text-slate-900 dark:text-white">PCOS Shield 14-Day</div>
-                <div className="text-xs text-slate-500">Zero insulin spikes</div>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="font-bold text-sm text-slate-900 dark:text-white">Protein Master</div>
-                <div className="text-xs text-slate-500">110g daily consistency</div>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-                <Droplets className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="font-bold text-sm text-slate-900 dark:text-white">Hydro Champion</div>
-                <div className="text-xs text-slate-500">2.8L water target hit</div>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                <Heart className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="font-bold text-sm text-slate-900 dark:text-white">Heart Resilient</div>
-                <div className="text-xs text-slate-500">Low sodium verified</div>
-              </div>
-            </div>
+            ) : (
+              <p className="text-xs text-slate-400 font-medium">No meals ordered yet today. Order from Marketplace to auto-log macros.</p>
+            )}
           </div>
-        </>
-      )}
+        </div>
+
+      </div>
+
     </div>
   );
 };
+
+export default NutritionDashboard;

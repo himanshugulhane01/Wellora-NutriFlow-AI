@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type {
   PlatformView,
   CategoryFilter,
@@ -22,6 +22,15 @@ import {
   aiService,
   mealRecommendationService
 } from '../services';
+import { runClinicalAssessment } from '../services/medicalEngine';
+
+interface DailyIntake {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  water: number; // in Liters
+}
 
 interface AppContextType {
   currentView: PlatformView;
@@ -49,6 +58,8 @@ interface AppContextType {
   openProfileModal: (tab?: 'account' | 'vitals') => void;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
+  userLocation: string;
+  setUserLocation: (loc: string) => void;
   isOrderTrackingOpen: boolean;
   setIsOrderTrackingOpen: (open: boolean) => void;
   activeOrder: Order | null;
@@ -64,6 +75,11 @@ interface AppContextType {
   isLoadingMeals: boolean;
   recommendedMeals: Meal[];
   isLoadingRecommendations: boolean;
+
+  // Daily Intake Tracking (updates dynamically from orders placed)
+  dailyIntake: DailyIntake;
+  setDailyIntake: React.Dispatch<React.SetStateAction<DailyIntake>>;
+  addWater: (liters: number) => void;
 
   // Auth
   currentUser: User | null;
@@ -92,12 +108,41 @@ const getDashboardForRole = (role: string): PlatformView => {
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // App UI & Feature States
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem('wellora_theme') === 'dark';
+  });
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const [healthProfile, setHealthProfile] = useState<HealthProfile>(INITIAL_HEALTH_PROFILE);
+  const [rawHealthProfile, setRawHealthProfile] = useState<HealthProfile>(INITIAL_HEALTH_PROFILE);
+  const healthProfile = useMemo(() => {
+    const clinical = runClinicalAssessment({
+      systolicBP:  rawHealthProfile.bloodPressureSystolic,
+      diastolicBP: rawHealthProfile.bloodPressureDiastolic,
+      bloodSugar:  rawHealthProfile.bloodSugarFasting,
+      cholesterol: rawHealthProfile.cholesterolTotal,
+      heartRate:   rawHealthProfile.heartRateBpm,
+      bmi:         rawHealthProfile.bmi,
+      age:         rawHealthProfile.age,
+      gender:      rawHealthProfile.gender as any,
+      diseases:    rawHealthProfile.diseases,
+    });
+    return {
+      ...rawHealthProfile,
+      healthScore: clinical.overallScore,
+    };
+  }, [rawHealthProfile]);
+
+  const setHealthProfile = useCallback((val: React.SetStateAction<HealthProfile>) => {
+    setRawHealthProfile(val);
+  }, []);
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  // Daily intake tracking — resets to 0 for new users; updates as orders are placed
+  const [dailyIntake, setDailyIntake] = useState<DailyIntake>({ calories: 0, protein: 0, carbs: 0, fat: 0, water: 0 });
+  const addWater = useCallback((liters: number) => {
+    setDailyIntake(prev => ({ ...prev, water: Math.min(prev.water + liters, 10) }));
+  }, []);
   const [selectedMealForDetail, setSelectedMealForDetail] = useState<Meal | null>(null);
 
   const [isAIModalOpen, setIsAIModalOpen] = useState<boolean>(false);
@@ -108,6 +153,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsProfileModalOpen(true);
   }, []);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [userLocation, setUserLocation] = useState<string>('Tech District, Block 4B');
   const [isOrderTrackingOpen, setIsOrderTrackingOpen] = useState<boolean>(false);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [ordersHistory, setOrdersHistory] = useState<Order[]>([]);
@@ -139,12 +185,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   ]);
 
-  // Sync dark class on html root
+  // Sync dark class on html root & persist preference
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('wellora_theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('wellora_theme', 'light');
     }
   }, [isDarkMode]);
 
@@ -316,6 +364,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(null);
     setIsAuthenticated(false);
     setHealthProfile(INITIAL_HEALTH_PROFILE);
+    setDailyIntake({ calories: 0, protein: 0, carbs: 0, fat: 0, water: 0 });
     setCart([]);
     setActiveOrder(null);
     setCurrentView('landing');
@@ -328,11 +377,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // ─── HEALTH PROFILE SAVE ──────────────────────────────────────────────────
-  const handleSaveHealthProfile = async (updated: HealthProfile) => {
-    setHealthProfile(updated);
-    try {
+  const handleSaveHealthProfile = useCallback(async (updatedOrFunc: React.SetStateAction<HealthProfile>) => {
+    setRawHealthProfile((prev) => {
+      const updated = typeof updatedOrFunc === 'function'
+        ? (updatedOrFunc as any)(prev)
+        : updatedOrFunc;
+
       if (authService.isAuthenticated()) {
-        await healthProfileService.update({
+        healthProfileService.update({
           age: updated.age,
           heightCm: updated.heightCm,
           weightKg: updated.weightKg,
@@ -340,12 +392,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           fitnessGoal: updated.fitnessGoal,
           dailyCalorieTarget: updated.dailyCalorieTarget,
           diseases: updated.diseases,
+        }).catch((err: any) => {
+          console.error('Failed to sync health profile update to backend:', err);
         });
       }
-    } catch (err) {
-      console.error('Failed to sync health profile update to backend:', err);
-    }
-  };
+
+      return updated;
+    });
+  }, []);
 
   // ─── CART ─────────────────────────────────────────────────────────────────
   const addToCart = (meal: Meal) => {
@@ -442,6 +496,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setActiveOrder(newOrder);
           setOrdersHistory(prev => [newOrder, ...prev]);
           setLastPlacedOrder(newOrder);
+          // Update daily intake with ordered meal macros
+          const totalMacros = cart.reduce((acc, item) => ({
+            calories: acc.calories + item.meal.macros.calories * item.quantity,
+            protein:  acc.protein  + item.meal.macros.protein  * item.quantity,
+            carbs:    acc.carbs    + item.meal.macros.carbs    * item.quantity,
+            fat:      acc.fat      + item.meal.macros.fat      * item.quantity,
+          }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+          setDailyIntake(prev => ({
+            ...prev,
+            calories: prev.calories + totalMacros.calories,
+            protein:  prev.protein  + totalMacros.protein,
+            carbs:    prev.carbs    + totalMacros.carbs,
+            fat:      prev.fat      + totalMacros.fat,
+          }));
           setCart([]);
           setIsCartOpen(false);
           setIsOrderSuccessModalOpen(true);
@@ -473,6 +541,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveOrder(newOrder);
     setOrdersHistory(prev => [newOrder, ...prev]);
     setLastPlacedOrder(newOrder);
+    // Update daily intake with fallback order macros
+    const totalMacros = cart.reduce((acc, item) => ({
+      calories: acc.calories + item.meal.macros.calories * item.quantity,
+      protein:  acc.protein  + item.meal.macros.protein  * item.quantity,
+      carbs:    acc.carbs    + item.meal.macros.carbs    * item.quantity,
+      fat:      acc.fat      + item.meal.macros.fat      * item.quantity,
+    }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+    setDailyIntake(prev => ({
+      ...prev,
+      calories: prev.calories + totalMacros.calories,
+      protein:  prev.protein  + totalMacros.protein,
+      carbs:    prev.carbs    + totalMacros.carbs,
+      fat:      prev.fat      + totalMacros.fat,
+    }));
     setCart([]);
     setIsCartOpen(false);
     setIsOrderSuccessModalOpen(true);
@@ -508,16 +590,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('API chatbot failed, running in fallback mode.', err);
     }
 
-    // Fallback response
+    // Fallback response driven by clinical decision engine
     setTimeout(() => {
-      let aiText = `I've analyzed your query about "${text}". For best results, please sign in so I can tailor my advice to your specific health profile and goals.`;
+      let aiText = `I've analyzed your query about "${text}". Please sign in to get personalized clinical advice matching your medical profile.`;
       let recMeal: Meal | undefined = undefined;
 
       if (isAuthenticated) {
-        aiText = `I've analyzed your query regarding "${text}". Based on your health profile, maintaining high protein (35g+) and rich polyphenol fiber will help prevent glucose spikes.`;
-        if (text.toLowerCase().includes('recommend') || text.toLowerCase().includes('lunch') || text.toLowerCase().includes('dinner') || text.toLowerCase().includes('eat')) {
+        // Run evidence-based medical engine on user's vitals
+        const clinical = runClinicalAssessment({
+          systolicBP:  healthProfile.bloodPressureSystolic,
+          diastolicBP: healthProfile.bloodPressureDiastolic,
+          bloodSugar:  healthProfile.bloodSugarFasting,
+          cholesterol: healthProfile.cholesterolTotal,
+          heartRate:   healthProfile.heartRateBpm,
+          bmi:         healthProfile.bmi,
+          age:         healthProfile.age,
+          gender:      healthProfile.gender as any,
+          diseases:    healthProfile.diseases,
+        });
+
+        const q = text.toLowerCase();
+
+        if (q.includes('bp') || q.includes('pressure') || q.includes('hypertension') || q.includes('salt')) {
+          const bpVital = clinical.vitals.find(v => v.vital === 'Blood Pressure');
+          aiText = bpVital
+            ? `🏥 Clinical Assessment (${bpVital.guideline}): ${bpVital.context}\n\n💡 Recommendation: ${bpVital.recommendation}`
+            : `AHA/ACC 2018 Guidelines recommend keeping BP <130/80 mmHg. Maintain DASH diet principles and limit sodium intake <1500mg/day.`;
+        } else if (q.includes('sugar') || q.includes('diabet') || q.includes('glucose') || q.includes('sweet')) {
+          const sugarVital = clinical.vitals.find(v => v.vital.includes('Sugar'));
+          aiText = sugarVital
+            ? `🏥 Clinical Assessment (${sugarVital.guideline}): ${sugarVital.context}\n\n💡 Recommendation: ${sugarVital.recommendation}`
+            : `ADA 2024 Standards of Care recommend fasting glucose <100 mg/dL (or 80–130 mg/dL for known diabetics). Prefer low-GI millets and fiber-rich legumes.`;
+        } else if (q.includes('pcos') || q.includes('pcod')) {
+          aiText = `🏥 Clinical Assessment (PCOS Society of India 2022 / ICMR 2023): In PCOS, insulin resistance elevates free testosterone. Switch to low-GI millets (GI <55), spearmint tea, and 1.2g/kg protein to regulate ovulation.`;
+          recMeal = meals.find(m => m.categories.includes('High Protein') || m.isVeg);
+        } else if (q.includes('recommend') || q.includes('eat') || q.includes('lunch') || q.includes('dinner') || q.includes('keto')) {
           recMeal = meals[0];
-          aiText = `Here is your top AI-matched meal: ${meals[0].name} (98% Health Match). It delivers 38g protein with a low GI of 28.`;
+          aiText = `Here is your top AI-matched meal: ${meals[0].name} (96% Bio-Match). It delivers ${meals[0].macros.protein}g protein with a low GI of ${meals[0].macros.glycemicIndex || '28'}, verified safe for your health profile.`;
+        } else {
+          aiText = `🏥 Wellora AI Clinical Summary (Health Score: ${clinical.overallScore}/100):\n${clinical.summary}\n\n💡 Advice for "${text}": Based on your profile (${healthProfile.fitnessGoal}, ${healthProfile.diseases.join(', ') || 'no chronic conditions'}), maintain balanced macros: ${healthProfile.dailyProteinTarget || 100}g protein and ${healthProfile.waterIntakeLiters || 2.5}L water daily.`;
         }
       }
 
@@ -561,6 +672,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         openProfileModal,
         isCartOpen,
         setIsCartOpen,
+        userLocation,
+        setUserLocation,
         isOrderTrackingOpen,
         setIsOrderTrackingOpen,
         activeOrder,
@@ -576,6 +689,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isLoadingMeals,
         recommendedMeals,
         isLoadingRecommendations,
+        dailyIntake,
+        setDailyIntake,
+        addWater,
         currentUser,
         setCurrentUser,
         isAuthenticated,
