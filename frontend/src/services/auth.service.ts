@@ -32,6 +32,12 @@ export const authService = {
   verifyOtp: (phone: string, otp: string) =>
     api.post<{ success: boolean; message: string }>('/auth/verify-otp', { phone, otp }),
 
+  sendEmailOtp: (email: string, name?: string) =>
+    api.post<{ success: boolean; message: string; data: { email: string; expiresInSeconds: number; simulated?: boolean } }>('/auth/send-email-otp', { email, name }),
+
+  verifyEmailOtp: (email: string, otp: string) =>
+    api.post<{ success: boolean; message: string }>('/auth/verify-email-otp', { email, otp }),
+
   logout: () => {
     localStorage.removeItem('wellora_token');
     localStorage.removeItem('wellora_user');
@@ -43,8 +49,13 @@ export const authService = {
   },
 
   getStoredUser: (): User | null => {
-    const raw = localStorage.getItem('wellora_user');
-    return raw ? JSON.parse(raw) : null;
+    try {
+      const raw = localStorage.getItem('wellora_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      localStorage.removeItem('wellora_user');
+      return null;
+    }
   },
 
   isAuthenticated: (): boolean => {

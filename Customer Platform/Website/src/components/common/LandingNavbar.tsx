@@ -1,133 +1,101 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
-import { Sparkles, Sun, Moon, LogIn, UserPlus, Bot, LayoutDashboard, LogOut } from 'lucide-react';
+import { Leaf, Sun, LogIn } from 'lucide-react';
 
 /**
- * LandingNavbar — shown on the landing page.
- * Allows user to Sign In / Get Started or Go to Dashboard.
+ * LandingNavbar — styled exactly to match the user's reference design.
+ * Features pill containers:
+ * [Logo pill] [Navigation pill: How It Works, Healthy Meals, For Partners] [Sun pill] [Sign In pill]
  */
 export const LandingNavbar: React.FC = () => {
   const {
-    isDarkMode,
-    setIsDarkMode,
+    setCurrentView,
     setIsAuthModalOpen,
     setAuthModalDefaultMode,
-    setIsAIModalOpen,
-    isAuthenticated,
-    setCurrentView,
-    logout,
   } = useApp();
 
-  const handleSignIn = () => {
-    if (isAuthenticated) {
-      setCurrentView('dashboard');
-    } else {
-      setAuthModalDefaultMode('login');
-      setIsAuthModalOpen(true);
+  const handleNavClick = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
-  const handleCreateAccount = () => {
-    if (isAuthenticated) {
-      setCurrentView('dashboard');
-    } else {
-      setAuthModalDefaultMode('signup');
-      setIsAuthModalOpen(true);
-    }
+  const handleDashboardClick = () => {
+    setCurrentView('dashboard');
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/80 dark:bg-[#07130F]/90 backdrop-blur-xl border-b border-slate-200/60 dark:border-emerald-500/10 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-slate-100 py-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
 
-        {/* Brand */}
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 via-emerald-500 to-green-400 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-            <Sparkles className="w-6 h-6 text-white" />
+        {/* ── Left: Brand Pill ── */}
+        <div className="inline-flex items-center gap-3 px-4 py-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+          {/* Green Leaf Brand Icon */}
+          <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <Leaf className="w-5 h-5 fill-emerald-600 stroke-emerald-600" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-2xl tracking-tight text-slate-900 dark:text-white font-['Outfit']">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1.5 leading-none">
+              <span className="font-black text-lg tracking-tight text-slate-900 font-['Outfit']">
                 WELLORA
               </span>
-              <span className="px-2 py-0.5 text-[11px] font-bold tracking-wider text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 rounded-full uppercase">
+              <span className="font-black text-lg tracking-tight text-emerald-600 font-['Outfit']">
                 AI
               </span>
             </div>
-            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 -mt-1 hidden sm:block">
+            <span className="text-[10px] font-semibold text-slate-500 tracking-tight mt-0.5">
               Personalized Healthcare & Food
-            </p>
+            </span>
           </div>
         </div>
 
-        {/* Right: Actions */}
+        {/* ── Middle: Navigation Links Pill ── */}
+        <nav className="hidden md:flex items-center gap-8 px-6 py-2.5 bg-white rounded-full border border-slate-200/80 shadow-xs text-xs font-bold text-slate-700">
+          <button
+            onClick={() => handleNavClick('how-it-works')}
+            className="hover:text-emerald-700 transition-colors"
+          >
+            How It Works
+          </button>
+          <button
+            onClick={() => handleNavClick('healthy-meals')}
+            className="hover:text-emerald-700 transition-colors"
+          >
+            Healthy Meals
+          </button>
+          <button
+            onClick={() => handleNavClick('for-partners')}
+            className="hover:text-emerald-700 transition-colors"
+          >
+            For Partners
+          </button>
+        </nav>
+
+        {/* ── Right Actions ── */}
         <div className="flex items-center gap-3">
-
-          {/* AI Bot quick launch */}
-          <button
-            onClick={() => setIsAIModalOpen(true)}
-            className="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-xs shadow-lg shadow-blue-500/25 hover:opacity-95 hover:scale-105 transition-all"
+          {/* Theme Indicator (Sun icon in round pill) */}
+          <div
+            className="w-9 h-9 rounded-full bg-white border border-slate-200/80 flex items-center justify-center text-slate-600 shadow-xs"
+            title="Clean Light Mode"
           >
-            <Bot className="w-4 h-4" />
-            <span>Ask Wellora AI</span>
-          </button>
+            <Sun className="w-4.5 h-4.5 text-slate-600 stroke-[2.2]" />
+          </div>
 
-          {/* Dark/Light Toggle */}
+          {/* Sign In CTA Button */}
           <button
-            onClick={() => setIsDarkMode((prev) => !prev)}
-            className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            aria-label="Toggle Theme"
+            id="landing-signin-btn"
+            onClick={() => {
+              setAuthModalDefaultMode('login');
+              setIsAuthModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#03624C] hover:bg-[#024e3c] text-white text-xs font-extrabold shadow-sm hover:shadow-md transition-all active:scale-95"
           >
-            {isDarkMode
-              ? <Sun className="w-5 h-5 text-amber-400" />
-              : <Moon className="w-5 h-5 text-slate-600" />}
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Sign In</span>
           </button>
-
-          {isAuthenticated ? (
-            <>
-              {/* Go to Dashboard */}
-              <button
-                id="landing-dashboard-btn"
-                onClick={() => setCurrentView('dashboard')}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 hover:scale-105 transition-all"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Go to Dashboard</span>
-              </button>
-
-              {/* Logout */}
-              <button
-                onClick={logout}
-                className="p-2.5 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
-                title="Sign Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Sign In */}
-              <button
-                id="landing-signin-btn"
-                onClick={handleSignIn}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl border-2 border-emerald-500 text-emerald-700 dark:text-emerald-400 font-extrabold text-xs hover:bg-emerald-500/10 transition-all"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </button>
-
-              {/* Create Account (primary CTA) */}
-              <button
-                id="landing-signup-btn"
-                onClick={handleCreateAccount}
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 hover:scale-105 transition-all"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Get Started</span>
-              </button>
-            </>
-          )}
         </div>
+
       </div>
     </header>
   );

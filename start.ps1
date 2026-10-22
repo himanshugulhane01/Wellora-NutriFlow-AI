@@ -1,12 +1,11 @@
 # Wellora - Start Frontend + Backend
-# Run from: C:\Users\himan\Desktop\Projects\NutriFlow AI
 
 Write-Host ""
 Write-Host "Wellora - Starting Full-Stack..." -ForegroundColor Green
 Write-Host "-----------------------------------" -ForegroundColor DarkGray
 
-$backendPath = "C:\Users\himan\Desktop\Projects\NutriFlow AI\Backend"
-$frontendPath = "C:\Users\himan\Desktop\Projects\NutriFlow AI\Customer Platform\Website"
+$backendPath = Join-Path $PSScriptRoot "Backend"
+$frontendPath = Join-Path $PSScriptRoot "frontend"
 
 # Start Backend
 Write-Host "Starting Backend  -> http://localhost:3001" -ForegroundColor Cyan

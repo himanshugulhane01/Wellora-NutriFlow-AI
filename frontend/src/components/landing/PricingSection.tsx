@@ -63,32 +63,32 @@ export const PricingSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-24 relative">
+    <section id="for-partners" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
-          <span className="px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+          <span className="px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
             Transparent Health Subscriptions
           </span>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight font-['Outfit']">
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight font-['Outfit']">
             Invest in Your Biological Longevity
           </h2>
-          <p className="text-slate-600 dark:text-slate-400 text-base">
+          <p className="text-slate-600 text-base">
             Choose the level of AI intelligence and clinical medical support your body deserves.
           </p>
 
           {/* Billing Toggle */}
           <div className="pt-4 flex items-center justify-center gap-3">
-            <span className={`text-xs font-bold ${!isAnnual ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+            <span className={`text-xs font-bold ${!isAnnual ? 'text-slate-900' : 'text-slate-400'}`}>
               Monthly Billing
             </span>
             <button
               onClick={() => setIsAnnual(!isAnnual)}
-              className="w-14 h-8 rounded-full bg-slate-200 dark:bg-slate-800 p-1 relative transition-colors focus:outline-none"
+              className="w-14 h-8 rounded-full bg-slate-200 p-1 relative transition-colors focus:outline-none"
             >
               <div className={`w-6 h-6 rounded-full bg-emerald-500 shadow-md transition-transform ${isAnnual ? 'translate-x-6' : 'translate-x-0'}`}></div>
             </button>
-            <span className={`text-xs font-bold flex items-center gap-1.5 ${isAnnual ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+            <span className={`text-xs font-bold flex items-center gap-1.5 ${isAnnual ? 'text-slate-900' : 'text-slate-400'}`}>
               <span>Annual Plan</span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-white">
                 SAVE 25%
@@ -106,8 +106,8 @@ export const PricingSection: React.FC = () => {
                 key={idx}
                 className={`relative p-8 rounded-3xl flex flex-col justify-between transition-all duration-300 ${
                   plan.highlight
-                    ? 'bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white shadow-2xl shadow-emerald-500/10 border-2 border-emerald-500 scale-105 z-10'
-                    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white shadow-lg'
+                    ? 'bg-gradient-to-b from-[#034B36] to-[#053728] text-white shadow-2xl shadow-emerald-900/20 border-2 border-emerald-400 scale-105 z-10'
+                    : 'bg-white border border-slate-200 text-slate-900 shadow-md hover:shadow-xl'
                 }`}
               >
                 {plan.badge && (
@@ -119,15 +119,15 @@ export const PricingSection: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-extrabold font-['Outfit']">{plan.name}</h3>
-                    {plan.highlight && <Sparkles className="w-5 h-5 text-emerald-400" />}
+                    {plan.highlight && <Sparkles className="w-5 h-5 text-amber-300" />}
                   </div>
-                  <p className={`text-xs mb-6 ${plan.highlight ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                  <p className={`text-xs mb-6 ${plan.highlight ? 'text-emerald-100/80' : 'text-slate-500'}`}>
                     {plan.desc}
                   </p>
 
                   <div className="mb-8">
                     <span className="text-4xl font-extrabold font-['Outfit']">₹{price}</span>
-                    <span className={`text-xs ml-2 font-medium ${plan.highlight ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <span className={`text-xs ml-2 font-medium ${plan.highlight ? 'text-emerald-200' : 'text-slate-500'}`}>
                       / month {isAnnual && price > 0 ? '(billed annually)' : ''}
                     </span>
                   </div>
@@ -136,11 +136,11 @@ export const PricingSection: React.FC = () => {
                     {plan.features.map((feat, fIdx) => (
                       <div key={fIdx} className="flex items-start gap-3 text-xs leading-snug">
                         <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                          plan.highlight ? 'bg-emerald-500 text-slate-950' : 'bg-emerald-500/10 text-emerald-500'
+                          plan.highlight ? 'bg-emerald-400 text-slate-950' : 'bg-emerald-500/10 text-emerald-600'
                         }`}>
                           <Check className="w-3 h-3 stroke-[3]" />
                         </div>
-                        <span className={plan.highlight ? 'text-slate-200' : 'text-slate-700 dark:text-slate-300'}>
+                        <span className={plan.highlight ? 'text-white/90' : 'text-slate-700'}>
                           {feat}
                         </span>
                       </div>
@@ -152,8 +152,8 @@ export const PricingSection: React.FC = () => {
                   onClick={handlePlanCTA}
                   className={`w-full py-4 rounded-2xl font-bold text-sm transition-all ${
                     plan.highlight
-                      ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/25'
-                      : 'bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500 hover:text-white text-slate-800 dark:text-slate-100'
+                      ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-lg shadow-amber-400/25'
+                      : 'bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-800'
                   }`}
                 >
                   {plan.cta}

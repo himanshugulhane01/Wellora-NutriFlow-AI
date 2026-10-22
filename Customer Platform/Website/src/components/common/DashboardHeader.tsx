@@ -134,16 +134,6 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
           )}
         </button>
 
-        {/* Dark Mode Toggle */}
-        <button
-          onClick={() => setIsDarkMode((prev) => !prev)}
-          className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-          aria-label="Toggle Theme"
-        >
-          {isDarkMode
-            ? <Sun className="w-5 h-5 text-amber-400" />
-            : <Moon className="w-5 h-5 text-slate-600" />}
-        </button>
 
         {/* User Avatar & Logout */}
         {currentUser && (

@@ -1,0 +1,76 @@
+## Wellora Admin Command Guide
+
+This file contains the most common commands an admin needs to manage the Wellora application.
+
+### 1. Start Services
+
+```powershell
+# From the project root
+# Start the backend API (runs on http://localhost:3001)
+cd backend
+npm install          # first‑time only
+npx prisma generate   # generate Prisma client (if needed)
+npm run dev
+```
+
+```powershell
+# In a separate terminal, start the frontend UI (runs on http://localhost:5173)
+cd frontend
+npm install          # first‑time only
+npm run dev
+```
+
+### 2. Reset / Seed Database
+
+```powershell
+# Reset the SQLite database and re‑run the seed script (creates demo users including admin)
+cd backend
+npx prisma migrate reset   # will drop and recreate the DB, then run `seed.ts`
+```
+
+After seeding you will see a console output similar to:
+```
+Admin:    wellora1111@gmail.com / Himanshu@01
+Customer: priya@wellora.ai / password123
+```
+
+### 3. Admin Login Credentials
+
+- **Email:** wellora1111@gmail.com
+- **Password:** Himanshu@01
+
+You can use these credentials with the API login endpoint or the admin login page.
+
+### 4. Open Admin Page via Command
+
+```powershell
+# From the project root, open the Admin Page directly in your browser:
+npm run admin
+
+# Or open directly in PowerShell:
+Start-Process "http://localhost:5173/admin"
+```
+
+### 5. API Quick Tests (via `curl`)
+
+```bash
+# Health check
+curl http://localhost:3001/api/health
+
+# Login (replace with your admin credentials)
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"wellora1111@gmail.com","password":"Himanshu@01"}'
+
+# List all meals
+curl http://localhost:3001/api/meals
+```
+
+### 5. Common Maintenance Commands
+
+- **Run a production build (frontend):** `npm run build`
+- **Run linting:** `npm run lint`
+- **Stop services:** Press `Ctrl+C` in each terminal window.
+
+---
+*Keep this file in the project root for quick reference.*

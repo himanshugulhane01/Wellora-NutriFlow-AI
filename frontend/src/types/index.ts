@@ -7,6 +7,7 @@ export type PlatformView =
   | 'smart-grocery'
   | 'doctor-consultation'
   | 'admin-dashboard'
+  | 'admin-portal'
   | 'restaurant-dashboard'
   | 'doctor-dashboard'
   | 'gold-facilities'

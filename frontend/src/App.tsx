@@ -17,7 +17,7 @@ import { HealthProfileModal } from './components/customer/HealthProfileModal';
 import { CartDrawer } from './components/customer/CartDrawer';
 import { OrderTrackingModal } from './components/customer/OrderTrackingModal';
 import { OrderSuccessModal } from './components/customer/OrderSuccessModal';
-import { AdminDashboard } from './components/dashboards/AdminDashboard';
+import { AdminPage } from './components/admin/AdminPage';
 import { RestaurantDashboard } from './components/dashboards/RestaurantDashboard';
 import { DoctorDashboard } from './components/dashboards/DoctorDashboard';
 import { AuthModal } from './components/customer/AuthModal';
@@ -88,15 +88,28 @@ const MainContent: React.FC = () => {
 
   // Sync view change to browser history
   React.useEffect(() => {
-    if (window.history.state?.view !== currentView) {
-      window.history.pushState({ view: currentView }, '', window.location.pathname);
+    const targetPath = (currentView === 'admin-portal' || currentView === 'admin-dashboard') ? '/admin' : '/';
+    if (window.history.state?.view !== currentView || (window.location.pathname !== targetPath && window.location.pathname === '/admin')) {
+      window.history.pushState({ view: currentView }, '', targetPath);
     }
   }, [currentView]);
 
-  // ── LANDING PAGE (unauthenticated) ────────────────────────────────────────
-  if (currentView === 'landing') {
+  // Redirect unauthenticated users safely (except admin-portal which manages its own admin auth)
+  React.useEffect(() => {
+    if (!isAuthenticated && currentView !== 'landing' && currentView !== 'admin-portal' && currentView !== 'admin-dashboard') {
+      setCurrentView('landing');
+    }
+  }, [isAuthenticated, currentView, setCurrentView]);
+
+  // ── SEPARATE DEDICATED ADMIN PAGE ──────────────────────────────────────────
+  if (currentView === 'admin-portal' || currentView === 'admin-dashboard') {
+    return <AdminPage />;
+  }
+
+  // ── LANDING PAGE (or fallback when not authenticated) ────────────────────
+  if (currentView === 'landing' || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex flex-col bg-[#F4F7F5] dark:bg-[#07130F]">
+      <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-app)' }}>
         <LandingNavbar />
         <main className="flex-1">
           <HeroSection />
@@ -107,21 +120,15 @@ const MainContent: React.FC = () => {
         </main>
         <Footer />
 
-        {/* Auth Modal (triggered from landing CTAs) */}
+        {/* Modals available on landing */}
         <AuthModal />
+        <AIAssistantModal />
       </div>
     );
   }
 
-  // ── PROTECTED DASHBOARD VIEWS (authenticated only) ────────────────────────
-  // If somehow a non-authenticated user reaches here, redirect to landing
-  if (!isAuthenticated) {
-    setCurrentView('landing');
-    return null;
-  }
-
   return (
-    <div className="min-h-screen flex bg-[#F4F7F5] dark:bg-[#07130F]">
+    <div className="min-h-screen flex" style={{ background: 'var(--bg-app)' }}>
 
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
@@ -147,13 +154,11 @@ const MainContent: React.FC = () => {
 
         {/* Dynamic Main View */}
         <main className="flex-1">
-          {currentView === 'dashboard' && <UserDashboard />}
-          {currentView === 'marketplace' && <Marketplace />}
+          {(currentView === 'dashboard' || currentView === 'marketplace') && <UserDashboard />}
           {currentView === 'nutrition-dashboard' && <NutritionDashboard />}
           {currentView === 'meal-planner' && <MealPlanner />}
           {currentView === 'smart-grocery' && <SmartGroceryStore />}
           {currentView === 'doctor-consultation' && <DoctorConsultation />}
-          {currentView === 'admin-dashboard' && <AdminDashboard />}
           {currentView === 'restaurant-dashboard' && <RestaurantDashboard />}
           {currentView === 'doctor-dashboard' && <DoctorDashboard />}
           {currentView === 'gold-facilities' && <GoldFacilities />}

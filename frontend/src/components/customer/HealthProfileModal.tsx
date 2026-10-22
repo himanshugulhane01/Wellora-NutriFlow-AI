@@ -16,19 +16,27 @@ export const HealthProfileModal: React.FC = () => {
   // Tab State: 'account' for Food App user details, 'vitals' for clinical medical data
   const [activeTab, setActiveTab] = useState<'account' | 'vitals'>('account');
 
-  // Account / Food App Details state
+  // Account / Food App Details & Personal Details state
   const [accountForm, setAccountForm] = useState({
     name: currentUser?.name || healthProfile.name || 'Himanshu Gulhane',
     email: currentUser?.email || 'himanshu@wellora.ai',
     phone: currentUser?.phone || '+91 98765 43210',
-    dietaryPreference: currentUser?.dietaryPreference || 'Non-Vegetarian',
+    age: healthProfile.age || '',
+    gender: healthProfile.gender || 'Female',
+    heightCm: healthProfile.heightCm || '',
+    weightKg: healthProfile.weightKg || '',
+    activityLevel: healthProfile.activityLevel || 'Moderately Active',
+    goal: healthProfile.fitnessGoal === 'Weight Loss' ? 'Lose Weight' : healthProfile.fitnessGoal === 'Muscle Gain' ? 'Gain Weight' : 'Maintain Weight',
+    dietaryPreference: (healthProfile.dietaryPreference || currentUser?.dietaryPreference || 'Vegetarian') as 'Vegetarian' | 'Non-Vegetarian' | 'Eggetarian',
+    allergies: healthProfile.allergies || [],
+    diseases: healthProfile.diseases || [],
     homeAddress: 'Flat 402, Green Towers, Tech District, City - 500081',
     workAddress: 'Floor 5, Innovation Hub, Cyber Park, City - 500084',
     upiId: 'himanshu@okicici',
     nutriCash: currentUser?.nutriCashBalance || 850,
-    preferredCuisines: ['Italian 🍕', 'Healthy Bowls 🥗', 'High Protein 💪'],
-    spiceLevel: 'Medium 🔥',
   });
+
+  const [allergyInput, setAllergyInput] = useState('');
 
   // Health / Clinical Vitals form state
   const [vitalsForm, setVitalsForm] = useState({
@@ -48,13 +56,19 @@ export const HealthProfileModal: React.FC = () => {
         name: currentUser?.name || healthProfile.name || 'Himanshu Gulhane',
         email: currentUser?.email || 'himanshu@wellora.ai',
         phone: currentUser?.phone || '+91 98765 43210',
-        dietaryPreference: currentUser?.dietaryPreference || 'Non-Vegetarian',
+        age: healthProfile.age || '',
+        gender: healthProfile.gender || 'Female',
+        heightCm: healthProfile.heightCm || '',
+        weightKg: healthProfile.weightKg || '',
+        activityLevel: healthProfile.activityLevel || 'Moderately Active',
+        goal: healthProfile.fitnessGoal === 'Weight Loss' ? 'Lose Weight' : healthProfile.fitnessGoal === 'Muscle Gain' ? 'Gain Weight' : 'Maintain Weight',
+        dietaryPreference: (healthProfile.dietaryPreference || currentUser?.dietaryPreference || 'Vegetarian') as 'Vegetarian' | 'Non-Vegetarian' | 'Eggetarian',
+        allergies: healthProfile.allergies || [],
+        diseases: healthProfile.diseases || [],
         homeAddress: 'Flat 402, Green Towers, Tech District, City - 500081',
         workAddress: 'Floor 5, Innovation Hub, Cyber Park, City - 500084',
         upiId: 'himanshu@okicici',
         nutriCash: currentUser?.nutriCashBalance || 850,
-        preferredCuisines: ['Italian 🍕', 'Healthy Bowls 🥗', 'High Protein 💪'],
-        spiceLevel: 'Medium 🔥',
       });
       setVitalsForm({
         ...healthProfile,
@@ -76,7 +90,18 @@ export const HealthProfileModal: React.FC = () => {
     'Thyroid (Hypo/Hyper)',
     'Kidney Disease',
     'Mild Insulin Sensitivity',
-    'Gluten Intolerance'
+    'Gluten Intolerance',
+    'High Cholesterol'
+  ];
+
+  const commonAllergiesList = [
+    'Peanuts',
+    'Tree Nuts (Almond/Cashew/Walnut)',
+    'Dairy / Milk',
+    'Gluten / Wheat',
+    'Eggs',
+    'Fish / Shellfish',
+    'Soy / Soya',
   ];
 
   const toggleDisease = (d: string) => {
@@ -89,9 +114,50 @@ export const HealthProfileModal: React.FC = () => {
     });
   };
 
+  const toggleAccountDisease = (d: string) => {
+    setAccountForm(prev => {
+      const exists = prev.diseases.includes(d);
+      return {
+        ...prev,
+        diseases: exists ? prev.diseases.filter(item => item !== d) : [...prev.diseases, d]
+      };
+    });
+  };
+
+  const toggleAccountAllergy = (a: string) => {
+    setAccountForm(prev => {
+      const exists = prev.allergies.includes(a);
+      return {
+        ...prev,
+        allergies: exists ? prev.allergies.filter(item => item !== a) : [...prev.allergies, a]
+      };
+    });
+  };
+
+  const handleAddCustomAllergy = () => {
+    if (!allergyInput.trim()) return;
+    const trimmed = allergyInput.trim();
+    if (!accountForm.allergies.includes(trimmed)) {
+      setAccountForm(prev => ({
+        ...prev,
+        allergies: [...prev.allergies, trimmed]
+      }));
+    }
+    setAllergyInput('');
+  };
+
   const handleSaveVitals = () => {
+    const height = Number(vitalsForm.heightCm) || 0;
+    const weight = Number(vitalsForm.weightKg) || 0;
+    const calculatedBmi = height > 0 && weight > 0
+      ? Math.round((weight / Math.pow(height / 100, 2)) * 10) / 10
+      : 0;
+
     setHealthProfile({
       ...vitalsForm,
+      heightCm: height,
+      weightKg: weight,
+      bmi: calculatedBmi,
       name: accountForm.name,
       bloodPressureSystolic:  vitalsForm.bloodPressureSystolic  ? Number(vitalsForm.bloodPressureSystolic)  : undefined,
       bloodPressureDiastolic: vitalsForm.bloodPressureDiastolic ? Number(vitalsForm.bloodPressureDiastolic) : undefined,
@@ -111,24 +177,48 @@ export const HealthProfileModal: React.FC = () => {
   };
 
   const handleSaveAccountDetails = () => {
+    const height = Number(accountForm.heightCm) || 0;
+    const weight = Number(accountForm.weightKg) || 0;
+    const calculatedBmi = height > 0 && weight > 0
+      ? Math.round((weight / Math.pow(height / 100, 2)) * 10) / 10
+      : 0;
+
+    const mappedGoal = accountForm.goal === 'Lose Weight'
+      ? 'Weight Loss'
+      : accountForm.goal === 'Gain Weight'
+        ? 'Muscle Gain'
+        : 'General Wellness';
+
     if (currentUser) {
       setCurrentUser({
         ...currentUser,
         name: accountForm.name,
         email: accountForm.email,
         phone: accountForm.phone,
+        dietaryPreference: accountForm.dietaryPreference,
       });
     }
+
     setHealthProfile(prev => ({
       ...prev,
       name: accountForm.name,
+      age: Number(accountForm.age) || prev.age,
+      gender: accountForm.gender as any,
+      heightCm: height || prev.heightCm,
+      weightKg: weight || prev.weightKg,
+      bmi: calculatedBmi || prev.bmi,
+      activityLevel: accountForm.activityLevel as any,
+      fitnessGoal: mappedGoal as any,
       dietaryPreference: accountForm.dietaryPreference,
+      allergies: accountForm.allergies,
+      diseases: accountForm.diseases,
     }));
+
     setIsProfileModalOpen(false);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-6">
 
         {/* Close Button */}
@@ -295,44 +385,220 @@ export const HealthProfileModal: React.FC = () => {
               </div>
             </div>
 
-            {/* Payment Methods & Food Preferences */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2">
-                <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                  <CreditCard className="w-4 h-4 text-emerald-500" /> Default Payment Method
-                </h4>
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  UPI ID: <span className="text-emerald-600 dark:text-emerald-400">{accountForm.upiId}</span>
-                </p>
-                <p className="text-[10px] text-slate-400">⚡ 1-Click Express Checkout enabled</p>
+            {/* ── PERSONAL DETAILS FORM (REQUIRED FOR ORDERS) ── */}
+            <div className="p-4 sm:p-5 rounded-3xl bg-slate-50 dark:bg-slate-800/60 border border-emerald-500/30 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5 font-['Outfit']">
+                    <User className="w-4 h-4 text-emerald-500" /> Personal Details Form
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Used by Wellora AI to verify allergen risks, calculate nutrition goals, and validate safety.
+                  </p>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black">
+                  Required for Orders
+                </span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-3 sm:col-span-2">
-                <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5 font-['Outfit']">
-                  <Utensils className="w-4 h-4 text-amber-500" /> Dietary Preference
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {['Vegetarian', 'Non-Vegetarian', 'Vegan', 'Keto', 'High Protein', 'Jain', 'Eggetarian'].map(pref => {
-                    const isSelected = accountForm.dietaryPreference === pref;
+              {/* Grid: Age, Sex, Height, Weight */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase">Age</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 26"
+                    value={accountForm.age}
+                    onChange={e => setAccountForm({ ...accountForm, age: e.target.value })}
+                    className="w-full mt-1 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase">Sex</label>
+                  <select
+                    value={accountForm.gender}
+                    onChange={e => setAccountForm({ ...accountForm, gender: e.target.value as any })}
+                    className="w-full mt-1 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                  >
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase">Height (cm)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 172"
+                    value={accountForm.heightCm}
+                    onChange={e => setAccountForm({ ...accountForm, heightCm: e.target.value })}
+                    className="w-full mt-1 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase">Weight (kg)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 68"
+                    value={accountForm.weightKg}
+                    onChange={e => setAccountForm({ ...accountForm, weightKg: e.target.value })}
+                    className="w-full mt-1 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Activity Level & Fitness Goal */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase">Activity Level</label>
+                  <select
+                    value={accountForm.activityLevel}
+                    onChange={e => setAccountForm({ ...accountForm, activityLevel: e.target.value as any })}
+                    className="w-full mt-1 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                  >
+                    <option value="Sedentary">Sedentary (Little or no exercise)</option>
+                    <option value="Lightly Active">Lightly Active (1-3 days/week)</option>
+                    <option value="Moderately Active">Moderately Active (3-5 days/week)</option>
+                    <option value="Very Active">Very Active (6-7 days/week)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase">Goal</label>
+                  <select
+                    value={accountForm.goal}
+                    onChange={e => setAccountForm({ ...accountForm, goal: e.target.value })}
+                    className="w-full mt-1 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                  >
+                    <option value="Maintain Weight">Maintain Weight</option>
+                    <option value="Lose Weight">Lose Weight</option>
+                    <option value="Gain Weight">Gain Weight</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Diet Type (Vegetarian, Egg, or Non-Vegetarian) */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase block">
+                  Diet Type
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'Vegetarian', label: 'Vegetarian 🥦' },
+                    { key: 'Eggetarian', label: 'Egg / Eggetarian 🥚' },
+                    { key: 'Non-Vegetarian', label: 'Non-Vegetarian 🍗' },
+                  ].map(dt => {
+                    const isSelected = accountForm.dietaryPreference === dt.key;
                     return (
                       <button
-                        key={pref}
+                        key={dt.key}
                         type="button"
-                        id={`profile-diet-btn-${pref.toLowerCase().replace(' ', '-')}`}
-                        onClick={() => setAccountForm(prev => ({ ...prev, dietaryPreference: pref as any }))}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        onClick={() => setAccountForm({ ...accountForm, dietaryPreference: dt.key as any })}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
                           isSelected
-                            ? 'bg-emerald-600 text-white shadow-md'
-                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-emerald-400'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-emerald-400'
                         }`}
                       >
-                        {isSelected && <Check className="w-3.5 h-3.5" />}
-                        <span>{pref}</span>
+                        {dt.label}
                       </button>
                     );
                   })}
                 </div>
               </div>
+
+              {/* Food Allergies */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase block">
+                  Food Allergies
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {commonAllergiesList.map(item => {
+                    const isSelected = accountForm.allergies.some(a => a.toLowerCase() === item.toLowerCase() || item.toLowerCase().includes(a.toLowerCase()));
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => toggleAccountAllergy(item)}
+                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
+                          isSelected
+                            ? 'bg-red-500 text-white border-red-500 shadow-sm'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-red-300'
+                        }`}
+                      >
+                        {isSelected ? '⚠️ ' : '+ '}
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Allergy Write-in */}
+                <div className="flex gap-2 pt-1">
+                  <input
+                    type="text"
+                    placeholder="Add other allergen (e.g. Sesame, Mustard, Mushroom)..."
+                    value={allergyInput}
+                    onChange={e => setAllergyInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustomAllergy(); } }}
+                    className="flex-1 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomAllergy}
+                    className="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold hover:bg-slate-300"
+                  >
+                    Add
+                  </button>
+                </div>
+
+                {accountForm.allergies.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <span className="text-[10px] font-black text-red-500 uppercase self-center mr-1">Active Allergens:</span>
+                    {accountForm.allergies.map(a => (
+                      <span
+                        key={a}
+                        onClick={() => toggleAccountAllergy(a)}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 text-[10px] font-bold border border-red-300 cursor-pointer hover:line-through"
+                        title="Click to remove"
+                      >
+                        {a} ✕
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Any Health Conditions */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-extrabold text-slate-400 uppercase block">
+                  Any Health Conditions
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {diseaseOptions.map(cond => {
+                    const isSelected = accountForm.diseases.includes(cond);
+                    return (
+                      <button
+                        key={cond}
+                        type="button"
+                        onClick={() => toggleAccountDisease(cond)}
+                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
+                          isSelected
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-purple-300'
+                        }`}
+                      >
+                        {isSelected ? '✓ ' : '+ '}
+                        {cond}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
 
             {/* Banner to switch to vitals */}
@@ -342,7 +608,7 @@ export const HealthProfileModal: React.FC = () => {
             >
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-emerald-500" />
-                <span>Need to update Blood Pressure, Sugar, or Weight vitals?</span>
+                <span>Want to record clinical blood pressure, sugar or lab values?</span>
               </div>
               <span className="text-[10px] underline">Open Vitals Form →</span>
             </button>

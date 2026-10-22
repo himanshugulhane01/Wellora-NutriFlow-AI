@@ -99,7 +99,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 /** Derives the correct dashboard view for a given user role */
 const getDashboardForRole = (role: string): PlatformView => {
   switch (role) {
-    case 'ADMIN': return 'admin-dashboard';
+    case 'ADMIN': return 'admin-portal';
     case 'RESTAURANT_OWNER': return 'restaurant-dashboard';
     case 'DOCTOR': return 'doctor-dashboard';
     default: return 'dashboard';
@@ -107,15 +107,24 @@ const getDashboardForRole = (role: string): PlatformView => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // App UI & Feature States
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem('wellora_theme') === 'dark';
-  });
+  // App UI & Feature States (Dark mode disabled - website is locked to clean light mode)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const [rawHealthProfile, setRawHealthProfile] = useState<HealthProfile>(INITIAL_HEALTH_PROFILE);
   const healthProfile = useMemo(() => {
+    // Only calculate a non-zero health score if the user has actually uploaded/entered vital metrics or measurements
+    const hasAnyVitalMeasurement = !!(
+      (rawHealthProfile.bloodPressureSystolic && rawHealthProfile.bloodPressureSystolic > 0) ||
+      (rawHealthProfile.bloodPressureDiastolic && rawHealthProfile.bloodPressureDiastolic > 0) ||
+      (rawHealthProfile.bloodSugarFasting && rawHealthProfile.bloodSugarFasting > 0) ||
+      (rawHealthProfile.cholesterolTotal && rawHealthProfile.cholesterolTotal > 0) ||
+      (rawHealthProfile.heartRateBpm && rawHealthProfile.heartRateBpm > 0) ||
+      (rawHealthProfile.oxygenSaturation && rawHealthProfile.oxygenSaturation > 0) ||
+      (rawHealthProfile.heightCm && rawHealthProfile.heightCm > 0 && rawHealthProfile.weightKg && rawHealthProfile.weightKg > 0)
+    );
+
     const clinical = runClinicalAssessment({
       systolicBP:  rawHealthProfile.bloodPressureSystolic,
       diastolicBP: rawHealthProfile.bloodPressureDiastolic,
@@ -129,7 +138,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     return {
       ...rawHealthProfile,
-      healthScore: clinical.overallScore,
+      healthScore: hasAnyVitalMeasurement ? clinical.overallScore : 0,
     };
   }, [rawHealthProfile]);
 
@@ -163,7 +172,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Auth States (Initialized synchronously from localStorage to avoid flashing)
   const [currentUser, setCurrentUser] = useState<User | null>(() => authService.getStoredUser());
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => authService.isAuthenticated());
-  const [currentView, setCurrentView] = useState<PlatformView>('landing');
+  const [currentView, setCurrentView] = useState<PlatformView>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname.startsWith('/admin') || window.location.hash === '#admin') {
+        return 'admin-portal';
+      }
+    }
+    return 'landing';
+  });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authModalDefaultMode, setAuthModalDefaultMode] = useState<'login' | 'signup'>('login');
 
@@ -185,16 +201,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   ]);
 
-  // Sync dark class on html root & persist preference
+  // Ensure website is always rendered in light theme
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('wellora_theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('wellora_theme', 'light');
-    }
-  }, [isDarkMode]);
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('wellora_theme', 'light');
+  }, []);
 
   // ─── SYNC USER DATA FROM BACKEND ──────────────────────────────────────────
   const syncUserData = useCallback(async () => {
@@ -209,17 +220,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const profileRes = await healthProfileService.get();
       if (profileRes.success && profileRes.data) {
         const profileData = profileRes.data as any;
+        const h = profileData.heightCm || 0;
+        const w = profileData.weightKg || 0;
+        const computedBmi = h > 0 && w > 0 ? (profileData.bmi || Math.round((w / Math.pow(h / 100, 2)) * 10) / 10) : 0;
+
         setHealthProfile(prev => ({
           ...prev,
           name: storedUser?.name || prev.name,
           age: profileData.age ?? prev.age,
-          heightCm: profileData.heightCm ?? prev.heightCm,
-          weightKg: profileData.weightKg ?? prev.weightKg,
+          heightCm: h,
+          weightKg: w,
           targetWeightKg: profileData.targetWeightKg ?? prev.targetWeightKg,
           fitnessGoal: profileData.fitnessGoal as any ?? prev.fitnessGoal,
           dailyCalorieTarget: profileData.dailyCalorieTarget ?? prev.dailyCalorieTarget,
           diseases: profileData.diseases ? JSON.parse(profileData.diseases) : prev.diseases,
-          bmi: profileData.bmi || prev.bmi,
+          bmi: computedBmi,
         }));
       }
 

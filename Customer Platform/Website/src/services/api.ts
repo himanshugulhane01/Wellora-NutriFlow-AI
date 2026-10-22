@@ -25,10 +25,18 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await response.json();
+  let data: any = {};
+  const text = await response.text();
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data.message || 'An error occurred');
+    throw new Error(data.message || `Request failed with status ${response.status}`);
   }
 
   return data;

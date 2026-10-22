@@ -123,8 +123,16 @@ export const BiometricScanner: React.FC<BiometricScannerProps> = ({ onScanComple
       } as any);
     } catch (_) { /* save to local state only */ }
 
+    // If height/weight are not set yet, estimate default baseline (165cm, 65kg -> BMI 23.9) so BMI is generated upon scanning
+    const resolvedHeight = healthProfile.heightCm && healthProfile.heightCm > 0 ? healthProfile.heightCm : 165;
+    const resolvedWeight = healthProfile.weightKg && healthProfile.weightKg > 0 ? healthProfile.weightKg : 65;
+    const calculatedBmi = Math.round((resolvedWeight / Math.pow(resolvedHeight / 100, 2)) * 10) / 10;
+
     const updatedProfile = {
       ...healthProfile,
+      heightCm:               resolvedHeight,
+      weightKg:               resolvedWeight,
+      bmi:                    calculatedBmi,
       bloodPressureSystolic:  vitals.bp.systolic,
       bloodPressureDiastolic: vitals.bp.diastolic,
       heartRateBpm:           vitals.heartRate,
@@ -142,7 +150,7 @@ export const BiometricScanner: React.FC<BiometricScannerProps> = ({ onScanComple
       heartRate:   vitals.heartRate,
       spo2:        vitals.spo2,
       cholesterol: healthProfile.cholesterolTotal,
-      bmi:         healthProfile.bmi,
+      bmi:         calculatedBmi,
       age:         healthProfile.age,
       gender:      healthProfile.gender as any,
       diseases:    healthProfile.diseases,

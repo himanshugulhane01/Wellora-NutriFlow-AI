@@ -18,8 +18,8 @@ export interface FoodRiskWarning {
 }
 
 /**
- * Analyzes a meal against the user's health profile vitals and diseases.
- * Returns a warning if the meal poses a health risk.
+ * Analyzes a meal against the user's health profile vitals, diseases, declared food allergies, and dietary preferences.
+ * Returns a warning if the meal poses an allergy risk, dietary conflict, or health condition risk.
  */
 export const analyzeFoodRisk = (
   meal: Meal,
@@ -30,13 +30,131 @@ export const analyzeFoodRisk = (
     bloodSugarFasting?: number;
     cholesterolTotal?: number;
     heartRateBpm?: number;
-  }
+  },
+  allergies: string[] = [],
+  dietaryPreference?: string
 ): FoodRiskWarning | null => {
   const name = meal.name.toLowerCase();
   const tags = meal.dietaryBadges?.join(' ').toLowerCase() || '';
   const macros = meal.macros;
+  const ingredientsStr = (meal.ingredients || []).join(' ').toLowerCase();
+  const mealDesc = `${name} ${tags} ${ingredientsStr}`.toLowerCase();
 
-  // ─── Run medical engine risk assessment ─────────────────────────────────────
+  // ─── 1. ALLERGY CHECK (Highest Priority) ──────────────────────────────────
+  if (allergies && allergies.length > 0) {
+    for (const rawAllergy of allergies) {
+      const allergy = rawAllergy.trim().toLowerCase();
+      if (!allergy) continue;
+
+      let matchedAllergen: string | null = null;
+
+      // Peanut & Tree Nut detection
+      if (allergy.includes('peanut') && (mealDesc.includes('peanut') || mealDesc.includes('groundnut'))) {
+        matchedAllergen = 'Peanuts';
+      } else if ((allergy.includes('nut') || allergy.includes('tree nut')) && (mealDesc.includes('almond') || mealDesc.includes('cashew') || mealDesc.includes('walnut') || mealDesc.includes('pistachio') || mealDesc.includes('nut') || mealDesc.includes('hazelnut'))) {
+        matchedAllergen = 'Tree Nuts';
+      }
+      // Dairy / Lactose detection
+      else if ((allergy.includes('dairy') || allergy.includes('milk') || allergy.includes('lactose')) && (mealDesc.includes('milk') || mealDesc.includes('cheese') || mealDesc.includes('paneer') || mealDesc.includes('butter') || mealDesc.includes('cream') || mealDesc.includes('curd') || mealDesc.includes('yogurt') || mealDesc.includes('dairy'))) {
+        matchedAllergen = 'Dairy / Milk';
+      }
+      // Gluten / Wheat detection
+      else if ((allergy.includes('gluten') || allergy.includes('wheat')) && (mealDesc.includes('wheat') || mealDesc.includes('flour') || mealDesc.includes('maida') || mealDesc.includes('bread') || mealDesc.includes('pasta') || mealDesc.includes('sourdough')) && !tags.includes('gluten free')) {
+        matchedAllergen = 'Gluten / Wheat';
+      }
+      // Egg detection
+      else if (allergy.includes('egg') && (mealDesc.includes('egg') || mealDesc.includes('scramble') || mealDesc.includes('omelet') || mealDesc.includes('mayonnaise'))) {
+        matchedAllergen = 'Eggs';
+      }
+      // Seafood / Shellfish / Fish detection
+      else if ((allergy.includes('seafood') || allergy.includes('fish') || allergy.includes('shellfish') || allergy.includes('prawn') || allergy.includes('shrimp')) && (mealDesc.includes('salmon') || mealDesc.includes('fish') || mealDesc.includes('prawn') || mealDesc.includes('shrimp') || mealDesc.includes('crab') || mealDesc.includes('lobster') || mealDesc.includes('tuna') || mealDesc.includes('seafood'))) {
+        matchedAllergen = 'Fish / Shellfish';
+      }
+      // Soy detection
+      else if ((allergy.includes('soy') || allergy.includes('soya')) && (mealDesc.includes('soy') || mealDesc.includes('tofu') || mealDesc.includes('edamame') || mealDesc.includes('tempeh'))) {
+        matchedAllergen = 'Soy';
+      }
+      // Direct string match
+      else if (mealDesc.includes(allergy)) {
+        matchedAllergen = rawAllergy;
+      }
+
+      if (matchedAllergen) {
+        return {
+          level: 'block',
+          reason: `Allergy Alert: Contains ${matchedAllergen}`,
+          detail: `You declared a food allergy to "${rawAllergy}". "${meal.name}" contains or is prepared with ${matchedAllergen}. Consuming this item may trigger an allergic reaction.`,
+          metric: `Declared Allergen: ${rawAllergy}`,
+          icon: AlertTriangle,
+          color: 'red',
+        };
+      }
+    }
+  }
+
+  // ─── 2. DIETARY PREFERENCE CONFLICT CHECK ──────────────────────────────────
+  if (dietaryPreference) {
+    const diet = dietaryPreference.toLowerCase();
+
+    // Vegetarian conflict: non-veg item or meat/fish/chicken/salmon
+    if (diet === 'vegetarian') {
+      const isMeatOrFish = meal.isVeg === false ||
+        mealDesc.includes('chicken') || mealDesc.includes('salmon') || mealDesc.includes('fish') ||
+        mealDesc.includes('meat') || mealDesc.includes('prawn') || mealDesc.includes('mutton') ||
+        mealDesc.includes('pork') || mealDesc.includes('bacon') || mealDesc.includes('egg');
+
+      if (isMeatOrFish) {
+        return {
+          level: 'caution',
+          reason: 'Dietary Preference Conflict: Vegetarian',
+          detail: `You have set your dietary preference as "Vegetarian". "${meal.name}" is non-vegetarian or contains meat/egg ingredients.`,
+          metric: 'Preference: Vegetarian',
+          icon: AlertTriangle,
+          color: 'orange',
+        };
+      }
+    }
+
+    // Vegan conflict: animal products (dairy, meat, egg, honey)
+    if (diet === 'vegan') {
+      const isAnimalProduct = meal.isVeg === false ||
+        mealDesc.includes('chicken') || mealDesc.includes('salmon') || mealDesc.includes('fish') ||
+        mealDesc.includes('meat') || mealDesc.includes('egg') || mealDesc.includes('paneer') ||
+        mealDesc.includes('cheese') || mealDesc.includes('milk') || mealDesc.includes('butter') ||
+        mealDesc.includes('curd') || mealDesc.includes('honey');
+
+      if (isAnimalProduct) {
+        return {
+          level: 'caution',
+          reason: 'Dietary Preference Conflict: Vegan',
+          detail: `You have set your preference as "Vegan". "${meal.name}" contains dairy, egg, or animal-derived ingredients.`,
+          metric: 'Preference: Vegan',
+          icon: AlertTriangle,
+          color: 'orange',
+        };
+      }
+    }
+
+    // Eggetarian conflict: contains meat or fish
+    if (diet === 'eggetarian') {
+      const isMeatOrFish = mealDesc.includes('chicken') || mealDesc.includes('salmon') || mealDesc.includes('fish') ||
+        mealDesc.includes('meat') || mealDesc.includes('prawn') || mealDesc.includes('mutton') ||
+        mealDesc.includes('pork') || mealDesc.includes('bacon');
+
+      if (isMeatOrFish) {
+        return {
+          level: 'caution',
+          reason: 'Dietary Preference Conflict: Eggetarian',
+          detail: `Your diet preference is "Eggetarian". "${meal.name}" contains meat or seafood.`,
+          metric: 'Preference: Eggetarian',
+          icon: AlertTriangle,
+          color: 'orange',
+        };
+      }
+    }
+  }
+
+  // ─── 3. Run medical engine risk assessment ──────────────────────────────────
   const risk = getMealRiskFromVitals({
     systolicBP:  vitals.bloodPressureSystolic,
     diastolicBP: vitals.bloodPressureDiastolic,

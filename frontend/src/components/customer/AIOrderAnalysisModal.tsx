@@ -28,16 +28,22 @@ export const AIOrderAnalysisModal: React.FC<AIOrderAnalysisModalProps> = ({
   const totalCarbs    = cart.reduce((s, i) => s + i.meal.macros.carbs * i.quantity, 0);
   const maxGI         = Math.max(...cart.map(i => i.meal.macros.glycemicIndex || 35));
 
-  // Check health risks across all items in cart
+  // Check health risks & allergies across all items in cart
   const cartRisks = cart.map(i => ({
     meal: i.meal,
-    risk: analyzeFoodRisk(i.meal, healthProfile.diseases, {
-      bloodPressureSystolic:  healthProfile.bloodPressureSystolic,
-      bloodPressureDiastolic: healthProfile.bloodPressureDiastolic,
-      bloodSugarFasting:      healthProfile.bloodSugarFasting,
-      cholesterolTotal:       healthProfile.cholesterolTotal,
-      heartRateBpm:           healthProfile.heartRateBpm,
-    }),
+    risk: analyzeFoodRisk(
+      i.meal,
+      healthProfile.diseases,
+      {
+        bloodPressureSystolic:  healthProfile.bloodPressureSystolic,
+        bloodPressureDiastolic: healthProfile.bloodPressureDiastolic,
+        bloodSugarFasting:      healthProfile.bloodSugarFasting,
+        cholesterolTotal:       healthProfile.cholesterolTotal,
+        heartRateBpm:           healthProfile.heartRateBpm,
+      },
+      healthProfile.allergies,
+      healthProfile.dietaryPreference
+    ),
   })).filter(r => r.risk !== null);
 
   const hasHighRisk = cartRisks.some(r => r.risk?.level === 'block');
@@ -131,20 +137,35 @@ export const AIOrderAnalysisModal: React.FC<AIOrderAnalysisModalProps> = ({
             </div>
           </div>
 
-          {/* Detailed Health Warnings if present */}
+          {/* Detailed Health & Allergy Warnings if present */}
           {cartRisks.length > 0 ? (
             <div className="space-y-2">
               <p className="text-[11px] font-black text-red-500 uppercase tracking-wider flex items-center gap-1">
-                <AlertTriangle className="w-3.5 h-3.5" /> Health Guard Alerts Detected ({cartRisks.length})
+                <AlertTriangle className="w-3.5 h-3.5" /> Health & Allergy Alerts Detected ({cartRisks.length})
               </p>
-              <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
                 {cartRisks.map(({ meal, risk }) => (
-                  <div key={meal.id} className="p-3 rounded-2xl bg-red-500/10 border border-red-500/25 text-xs text-red-700 dark:text-red-300">
-                    <p className="font-bold flex items-center gap-1.5">
-                      <span>🚫 {meal.name}</span>
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-red-600 text-white ml-auto">{risk?.reason}</span>
+                  <div key={meal.id} className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/25 text-xs text-red-700 dark:text-red-300 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-bold flex items-center gap-1.5 truncate">
+                        <span>🚫 {meal.name}</span>
+                      </p>
+                      <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-red-600 text-white shrink-0">
+                        {risk?.reason}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-snug">
+                      {risk?.detail}
                     </p>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 leading-snug">{risk?.detail}</p>
+                    {/* Action buttons on specific conflicting item: Review vs Remove */}
+                    <div className="flex items-center justify-end gap-2 pt-1 border-t border-red-500/20">
+                      <button
+                        onClick={() => removeFromCart(meal.id)}
+                        className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[10px] font-bold transition-all flex items-center gap-1"
+                      >
+                        <span>Remove Item from Basket</span>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -153,7 +174,7 @@ export const AIOrderAnalysisModal: React.FC<AIOrderAnalysisModalProps> = ({
             <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
               <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
               <p>
-                <strong>Wellora Verified:</strong> This meal order aligns with your daily target of {healthProfile.dailyCalorieTarget} kcal and fits your {healthProfile.fitnessGoal} profile!
+                <strong>Wellora Verified:</strong> No allergen risks detected. This meal order fits your dietary preference and health profile!
               </p>
             </div>
           )}
@@ -184,19 +205,23 @@ export const AIOrderAnalysisModal: React.FC<AIOrderAnalysisModalProps> = ({
             </div>
           )}
 
-          {/* Buttons */}
+          {/* Modal Action Buttons: Cancel/Modify vs Proceed with Warning Acknowledged */}
           <div className="flex gap-3 pt-2">
             <button
               onClick={onClose}
               className="flex-1 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 transition-colors"
             >
-              Modify Order
+              Cancel / Review Basket
             </button>
             <button
               onClick={() => { onClose(); onConfirmOrder(); }}
-              className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all"
+              className={`flex-1 py-3 rounded-2xl font-extrabold text-xs shadow-lg flex items-center justify-center gap-2 transition-all text-white ${
+                hasHighRisk
+                  ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
+                  : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30'
+              }`}
             >
-              <span>{hasHighRisk ? 'Proceed Anyway' : 'Looks Good! Place Order'}</span>
+              <span>{hasHighRisk ? 'Acknowledge Risk & Proceed' : 'Confirm & Place Order'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

@@ -32,11 +32,11 @@ router.post('/chat', async (req, res, next) => {
         if (apiKey && apiKey !== 'your_gemini_api_key_here') {
             // Use Gemini AI
             const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
             const diseases = healthProfile?.diseases
                 ? JSON.parse(healthProfile.diseases).join(', ') || 'None'
                 : 'None';
-            const systemContext = `You are NutriFlow AI Health Assistant — a compassionate, expert nutrition and health advisor.
+            const systemContext = `You are Wellora Health Assistant — a compassionate, expert nutrition and health advisor.
 
 User Health Profile:
 - Age: ${healthProfile?.age || 'Unknown'}
@@ -50,7 +50,7 @@ Guidelines:
 - Give personalized, evidence-based nutrition advice
 - Always account for the user's medical conditions
 - Be warm, encouraging, and motivating
-- Suggest specific NutriFlow meals when relevant
+- Suggest specific Wellora meals when relevant
 - Keep responses concise (2-4 sentences) unless a detailed explanation is needed
 - If asked about medication or serious medical issues, recommend consulting a doctor`;
             const chat = model.startChat({
@@ -96,6 +96,92 @@ router.delete('/history', async (req, res, next) => {
     try {
         await prisma_1.prisma.chatMessage.deleteMany({ where: { userId: req.user.id } });
         res.json({ success: true, message: 'Chat history cleared' });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// POST /api/ai/analyze-order — LLM clinical analysis of order before placement
+router.post('/analyze-order', async (req, res, next) => {
+    try {
+        const schema = zod_1.z.object({
+            cartItems: zod_1.z.array(zod_1.z.object({
+                name: zod_1.z.string(),
+                calories: zod_1.z.number(),
+                protein: zod_1.z.number(),
+                carbs: zod_1.z.number(),
+                fat: zod_1.z.number(),
+                glycemicIndex: zod_1.z.number().optional(),
+            })),
+        });
+        const { cartItems } = schema.parse(req.body);
+        const healthProfile = await prisma_1.prisma.healthProfile.findUnique({
+            where: { userId: req.user.id },
+        });
+        const apiKey = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
+        const diseases = healthProfile?.diseases ? JSON.parse(healthProfile.diseases).join(', ') : 'None';
+        const bp = healthProfile?.bloodPressureSystolic ? `${healthProfile.bloodPressureSystolic}/${healthProfile.bloodPressureDiastolic} mmHg` : 'Not recorded';
+        const sugar = healthProfile?.bloodSugarFasting ? `${healthProfile.bloodSugarFasting} mg/dL` : 'Not recorded';
+        const prompt = `You are Wellora Clinical Nutrition & Physician LLM.
+Analyze this meal order for the patient:
+
+Patient Metrics:
+- Vitals: BP ${bp}, Fasting Blood Sugar ${sugar}
+- Conditions: ${diseases}
+- Goal: ${healthProfile?.fitnessGoal || 'General Wellness'} (${healthProfile?.dailyCalorieTarget || 1800} kcal daily target)
+
+Order Items:
+${cartItems.map(i => `- ${i.name} (${i.calories} kcal, ${i.protein}g protein, ${i.carbs}g carbs, ${i.fat}g fat, GI ${i.glycemicIndex || '35'})`).join('\n')}
+
+Analyze safety for patient's vitals & diseases.
+Return JSON strictly in this format:
+{
+  "bioMatchScore": 95,
+  "isSafe": true,
+  "healthStatus": "Excellent Choice",
+  "clinicalAnalysis": "This meal aligns well with your targets. High protein and low glycemic index ensure stable blood sugar and energy.",
+  "warning": null,
+  "recommendedSwap": null
+}`;
+        if (apiKey && apiKey !== 'your_gemini_api_key_here') {
+            try {
+                const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+                const result = await model.generateContent(prompt);
+                const text = result.response.text();
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    return res.json({ success: true, data: parsed });
+                }
+            }
+            catch (llmErr) {
+                console.warn('⚠️ LLM Order Analysis error, using fallback analyzer:', llmErr);
+            }
+        }
+        // Fallback clinical evaluation if key not present
+        const totalKcal = cartItems.reduce((s, i) => s + i.calories, 0);
+        const totalProtein = cartItems.reduce((s, i) => s + i.protein, 0);
+        const maxGI = Math.max(...cartItems.map(i => i.glycemicIndex || 35));
+        const isHighBP = healthProfile?.bloodPressureSystolic && healthProfile.bloodPressureSystolic >= 140;
+        const isRiskyMeal = cartItems.some(i => i.name.toLowerCase().includes('pizza') || i.name.toLowerCase().includes('burger'));
+        const isSafe = !(isHighBP && isRiskyMeal);
+        const bioMatchScore = isSafe ? 94 : 62;
+        const healthStatus = isSafe ? 'Excellent Choice' : 'Unhealthy Warning';
+        const clinicalAnalysis = isSafe
+            ? `This order supplies ${totalKcal} kcal & ${totalProtein}g protein with a low GI of ${maxGI}. Perfectly aligned with your ${healthProfile?.fitnessGoal || 'wellness'} plan!`
+            : `This order contains high sodium & GI foods which conflict with your elevated BP of ${bp}.`;
+        res.json({
+            success: true,
+            data: {
+                bioMatchScore,
+                isSafe,
+                healthStatus,
+                clinicalAnalysis,
+                warning: isSafe ? null : `High sodium intake detected for BP ${bp}`,
+                recommendedSwap: isSafe ? null : 'Avocado & Grilled Salmon Power Bowl',
+            },
+        });
     }
     catch (err) {
         next(err);

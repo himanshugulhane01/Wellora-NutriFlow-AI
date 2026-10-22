@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { BiometricScanner } from './BiometricScanner';
+import { healthProfileService } from '../../services';
 import {
   Activity, Heart, Droplet, Minus, Shield, AlertTriangle,
   CheckCircle, Zap, Plus, X, ShieldAlert, Edit3,
@@ -33,6 +34,7 @@ const getVitalStatus = (
 };
 
 const getBMILabel = (bmi: number) => {
+  if (!bmi || bmi <= 0) return { label: 'Not Entered', color: 'text-slate-400', bg: 'bg-slate-100' };
   if (bmi < 18.5) return { label: 'Underweight', color: 'text-blue-500', bg: 'bg-blue-500/10' };
   if (bmi < 25)   return { label: 'Normal', color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
   if (bmi < 30)   return { label: 'Overweight', color: 'text-amber-500', bg: 'bg-amber-500/10' };
@@ -52,15 +54,24 @@ export const HealthReports: React.FC = () => {
   // Vitals form state
   const [isVitalsEditing, setIsVitalsEditing] = useState(false);
   const [showBioScanner, setShowBioScanner]   = useState(false);
-  const [vitalsForm, setVitalsForm] = useState({
-    bloodPressureSystolic:  healthProfile.bloodPressureSystolic  ?? ('' as number | ''),
-    bloodPressureDiastolic: healthProfile.bloodPressureDiastolic ?? ('' as number | ''),
-    bloodSugarFasting:      healthProfile.bloodSugarFasting      ?? ('' as number | ''),
-    cholesterolTotal:       healthProfile.cholesterolTotal       ?? ('' as number | ''),
-    heartRateBpm:           healthProfile.heartRateBpm           ?? ('' as number | ''),
-    oxygenSaturation:       healthProfile.oxygenSaturation       ?? ('' as number | ''),
-    weightKg:               healthProfile.weightKg               ?? ('' as number | ''),
-    heightCm:               healthProfile.heightCm               ?? ('' as number | ''),
+  const [vitalsForm, setVitalsForm] = useState<{
+    bloodPressureSystolic: number | '';
+    bloodPressureDiastolic: number | '';
+    bloodSugarFasting: number | '';
+    cholesterolTotal: number | '';
+    heartRateBpm: number | '';
+    oxygenSaturation: number | '';
+    weightKg: number | '';
+    heightCm: number | '';
+  }>({
+    bloodPressureSystolic:  healthProfile.bloodPressureSystolic  ?? '',
+    bloodPressureDiastolic: healthProfile.bloodPressureDiastolic ?? '',
+    bloodSugarFasting:      healthProfile.bloodSugarFasting      ?? '',
+    cholesterolTotal:       healthProfile.cholesterolTotal       ?? '',
+    heartRateBpm:           healthProfile.heartRateBpm           ?? '',
+    oxygenSaturation:       healthProfile.oxygenSaturation       ?? '',
+    weightKg:               healthProfile.weightKg               ?? '',
+    heightCm:               healthProfile.heightCm               ?? '',
   });
 
   const [savedMsg, setSavedMsg] = useState('');
@@ -71,17 +82,26 @@ export const HealthReports: React.FC = () => {
   };
 
   // Save conditions
-  const handleSaveConditions = () => {
+  const handleSaveConditions = async () => {
     setHealthProfile((prev: typeof healthProfile) => ({ ...prev, diseases: selectedDiseases, allergies: selectedAllergies }));
+    try {
+      await healthProfileService.update({
+        diseases: selectedDiseases,
+      });
+    } catch (_) { /* saved locally in context */ }
     setIsConditionsEditing(false);
     showSaved('Health conditions & allergies saved! AI food warnings are now updated.');
   };
 
   // Save vitals
-  const handleSaveVitals = () => {
-    const bmi = vitalsForm.heightCm && vitalsForm.weightKg
-      ? Math.round(((vitalsForm.weightKg as number) / Math.pow((vitalsForm.heightCm as number) / 100, 2)) * 10) / 10
-      : healthProfile.bmi;
+  const handleSaveVitals = async () => {
+    const h = vitalsForm.heightCm !== '' ? Number(vitalsForm.heightCm) : healthProfile.heightCm;
+    const w = vitalsForm.weightKg !== '' ? Number(vitalsForm.weightKg) : healthProfile.weightKg;
+    const calculatedBmi = h > 0 && w > 0
+      ? Math.round((w / Math.pow(h / 100, 2)) * 10) / 10
+      : 0;
+
+    const now = new Date().toISOString();
 
     setHealthProfile((prev: typeof healthProfile) => ({
       ...prev,
@@ -91,28 +111,104 @@ export const HealthReports: React.FC = () => {
       cholesterolTotal:       vitalsForm.cholesterolTotal        !== '' ? Number(vitalsForm.cholesterolTotal)       : undefined,
       heartRateBpm:           vitalsForm.heartRateBpm           !== '' ? Number(vitalsForm.heartRateBpm)           : undefined,
       oxygenSaturation:       vitalsForm.oxygenSaturation       !== '' ? Number(vitalsForm.oxygenSaturation)       : undefined,
-      weightKg:               vitalsForm.weightKg               !== '' ? Number(vitalsForm.weightKg)               : prev.weightKg,
-      heightCm:               vitalsForm.heightCm               !== '' ? Number(vitalsForm.heightCm)               : prev.heightCm,
-      bmi,
-      lastVitalScanAt: new Date().toISOString(),
+      weightKg:               w,
+      heightCm:               h,
+      bmi:                    calculatedBmi,
+      lastVitalScanAt:        now,
     }));
+
+    try {
+      await healthProfileService.update({
+        heightCm: h,
+        weightKg: w,
+        bloodPressureSystolic:  vitalsForm.bloodPressureSystolic  !== '' ? Number(vitalsForm.bloodPressureSystolic)  : undefined,
+        bloodPressureDiastolic: vitalsForm.bloodPressureDiastolic !== '' ? Number(vitalsForm.bloodPressureDiastolic) : undefined,
+        bloodSugarFasting:      vitalsForm.bloodSugarFasting      !== '' ? Number(vitalsForm.bloodSugarFasting)      : undefined,
+        cholesterolTotal:       vitalsForm.cholesterolTotal        !== '' ? Number(vitalsForm.cholesterolTotal)       : undefined,
+        heartRateBpm:           vitalsForm.heartRateBpm           !== '' ? Number(vitalsForm.heartRateBpm)           : undefined,
+        oxygenSaturation:       vitalsForm.oxygenSaturation       !== '' ? Number(vitalsForm.oxygenSaturation)       : undefined,
+      } as any);
+    } catch (_) { /* saved locally in context */ }
+
     setIsVitalsEditing(false);
     showSaved('Vitals saved! Your health score and food safety warnings will update automatically.');
   };
 
-  // BMI computation
-  const bmi = vitalsForm.heightCm && vitalsForm.weightKg
-    ? Math.round(((vitalsForm.weightKg as number) / Math.pow((vitalsForm.heightCm as number) / 100, 2)) * 10) / 10
-    : healthProfile.bmi;
+  // Reset health trackers and vitals to clean baseline
+  const handleResetVitals = async () => {
+    if (!window.confirm('Are you sure you want to reset all health tracker vitals and metrics?')) {
+      return;
+    }
 
-  const bmiInfo = getBMILabel(bmi || 0);
+    setHealthProfile((prev: typeof healthProfile) => ({
+      ...prev,
+      bloodPressureSystolic:  undefined,
+      bloodPressureDiastolic: undefined,
+      bloodSugarFasting:      undefined,
+      cholesterolTotal:       undefined,
+      heartRateBpm:           undefined,
+      oxygenSaturation:       undefined,
+      weightKg:               0,
+      heightCm:               0,
+      bmi:                    0,
+      lastVitalScanAt:        undefined,
+      healthScore:            0,
+    }));
 
-  // Health score computation
-  const healthScore = healthProfile.healthScore;
+    setVitalsForm({
+      bloodPressureSystolic:  '',
+      bloodPressureDiastolic: '',
+      bloodSugarFasting:      '',
+      cholesterolTotal:       '',
+      heartRateBpm:           '',
+      oxygenSaturation:       '',
+      weightKg:               '',
+      heightCm:               '',
+    });
 
-  const scoreColor = healthScore >= 80 ? '#10b981' : healthScore >= 60 ? '#f59e0b' : '#ef4444';
-  const circumference = 2 * Math.PI * 54;
-  const dashOffset = circumference - (healthScore / 100) * circumference;
+    try {
+      await healthProfileService.update({
+        heightCm: 0,
+        weightKg: 0,
+        bloodPressureSystolic:  null,
+        bloodPressureDiastolic: null,
+        bloodSugarFasting:      null,
+        cholesterolTotal:       null,
+        heartRateBpm:           null,
+        oxygenSaturation:       null,
+      } as any);
+    } catch (_) { /* context updated */ }
+
+    setIsVitalsEditing(false);
+    showSaved('Health trackers have been reset successfully.');
+  };
+
+  // Keep vitalsForm synced if healthProfile updates (e.g. from backend or scan)
+  useEffect(() => {
+    setVitalsForm({
+      bloodPressureSystolic:  healthProfile.bloodPressureSystolic  ?? '',
+      bloodPressureDiastolic: healthProfile.bloodPressureDiastolic ?? '',
+      bloodSugarFasting:      healthProfile.bloodSugarFasting      ?? '',
+      cholesterolTotal:       healthProfile.cholesterolTotal       ?? '',
+      heartRateBpm:           healthProfile.heartRateBpm           ?? '',
+      oxygenSaturation:       healthProfile.oxygenSaturation       ?? '',
+      weightKg:               healthProfile.weightKg && healthProfile.weightKg > 0 ? healthProfile.weightKg : '',
+      heightCm:               healthProfile.heightCm && healthProfile.heightCm > 0 ? healthProfile.heightCm : '',
+    });
+  }, [healthProfile]);
+
+  // BMI computation:
+  // Strictly 0 initially until user saves positive height (>0) and weight (>0).
+  const savedHeight = healthProfile.heightCm && healthProfile.heightCm > 0 ? healthProfile.heightCm : 0;
+  const savedWeight = healthProfile.weightKg && healthProfile.weightKg > 0 ? healthProfile.weightKg : 0;
+
+  const hasEnteredBmiData = savedHeight > 0 && savedWeight > 0;
+
+  const bmi = hasEnteredBmiData
+    ? Math.round((savedWeight / Math.pow(savedHeight / 100, 2)) * 10) / 10
+    : 0;
+
+  const bmiInfo = getBMILabel(bmi);
 
   const vitals = [
     { label: 'Systolic BP',    value: healthProfile.bloodPressureSystolic,  unit: 'mmHg',  status: getVitalStatus(healthProfile.bloodPressureSystolic,  [90, 120], 140), icon: <Heart className="w-5 h-5" />,    color: 'from-rose-500 to-pink-500' },
@@ -124,6 +220,13 @@ export const HealthReports: React.FC = () => {
   ];
 
   const hasAnyVital = vitals.some(v => v.value !== undefined && v.value > 0);
+
+  // Health score computation (strictly 0 if user has not uploaded/entered vitals/report)
+  const healthScore = hasAnyVital ? (healthProfile.healthScore || 0) : 0;
+
+  const scoreColor = healthScore === 0 ? '#94a3b8' : healthScore >= 80 ? '#10b981' : healthScore >= 60 ? '#f59e0b' : '#ef4444';
+  const circumference = 2 * Math.PI * 54;
+  const dashOffset = healthScore === 0 ? circumference : circumference - (healthScore / 100) * circumference;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8 font-sans">
@@ -141,11 +244,21 @@ export const HealthReports: React.FC = () => {
             Enter your vitals manually or use the biometric scanner. All data stays private and updates your AI food recommendations instantly.
           </p>
         </div>
-        {healthProfile.lastVitalScanAt && (
-          <div className="text-[10px] text-slate-400 font-medium bg-slate-100 px-3 py-1.5 rounded-xl">
-            Last updated: {new Date(healthProfile.lastVitalScanAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-          </div>
-        )}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          {healthProfile.lastVitalScanAt && (
+            <div className="text-[10px] text-slate-400 font-medium bg-slate-100 px-3 py-1.5 rounded-xl">
+              Last updated: {new Date(healthProfile.lastVitalScanAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </div>
+          )}
+          <button
+            onClick={handleResetVitals}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold border border-red-200/70 transition-all shadow-xs"
+            title="Reset all health trackers"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Reset Trackers</span>
+          </button>
+        </div>
       </div>
 
       {/* Success toast */}
@@ -175,7 +288,7 @@ export const HealthReports: React.FC = () => {
             </div>
           </div>
           <p className="text-xs text-slate-500 font-medium">
-            {!hasAnyVital ? 'Add vitals below to get your accurate score.' :
+            {healthScore === 0 || !hasAnyVital ? 'No health report added yet. Enter your vitals or scan below to calculate your score.' :
              healthScore >= 80 ? '🎉 Excellent health! Keep up the great work.' :
              healthScore >= 60 ? '⚠️ Good, but some vitals need attention.' :
              '🚨 Health needs improvement. Consult a doctor.'}
@@ -186,23 +299,50 @@ export const HealthReports: React.FC = () => {
         <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-lg space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-sm text-slate-900 font-['Outfit']">Body Mass Index (BMI)</h3>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold ${bmiInfo.bg} ${bmiInfo.color}`}>{bmiInfo.label}</span>
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${bmiInfo.bg} ${bmiInfo.color}`}>{bmiInfo.label}</span>
+              <button
+                id="bmi-card-enter-btn"
+                onClick={() => setIsVitalsEditing(true)}
+                className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 hover:underline"
+              >
+                <Edit3 className="w-3 h-3" /> {bmi && bmi > 0 ? 'Edit' : 'Enter'}
+              </button>
+            </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900 font-['Outfit']">{bmi || '—'}</span>
-            {bmi ? <span className="text-xs text-slate-400 font-medium">kg/m²</span> : null}
+            <span className="text-3xl font-black text-slate-900 font-['Outfit']">{bmi && bmi > 0 ? bmi : '0'}</span>
+            {bmi && bmi > 0 ? <span className="text-xs text-slate-400 font-medium">kg/m²</span> : null}
           </div>
           <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden flex">
-            <div className="h-full bg-blue-500"   style={{ width: '18.5%' }} />
-            <div className="h-full bg-emerald-500" style={{ width: '25%' }} />
-            <div className="h-full bg-amber-500"  style={{ width: '25%' }} />
-            <div className="h-full bg-red-500"    style={{ width: '31.5%' }} />
+            {bmi && bmi > 0 ? (
+              <>
+                <div className="h-full bg-blue-500"   style={{ width: '18.5%' }} />
+                <div className="h-full bg-emerald-500" style={{ width: '25%' }} />
+                <div className="h-full bg-amber-500"  style={{ width: '25%' }} />
+                <div className="h-full bg-red-500"    style={{ width: '31.5%' }} />
+              </>
+            ) : (
+              <div className="h-full bg-slate-200 w-full" />
+            )}
           </div>
           <div className="flex justify-between text-[9px] font-bold text-slate-400">
             <span>Under</span><span>Normal</span><span>Over</span><span>Obese</span>
           </div>
-          {!bmi && (
-            <p className="text-[11px] text-slate-400">Enter height & weight in the Vitals form to calculate BMI.</p>
+          {(!bmi || bmi <= 0) ? (
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-[11px] text-slate-400">No height & weight recorded yet.</p>
+              <button
+                onClick={() => setIsVitalsEditing(true)}
+                className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"
+              >
+                Calculate BMI →
+              </button>
+            </div>
+          ) : (
+            <p className="text-[11px] text-slate-500 font-medium">
+              Height: <strong>{savedHeight} cm</strong> · Weight: <strong>{savedWeight} kg</strong>
+            </p>
           )}
         </div>
 
@@ -352,7 +492,16 @@ export const HealthReports: React.FC = () => {
             <Heart className="w-5 h-5 text-rose-500" />
             <h2 className="text-lg font-bold text-slate-900 font-['Outfit']">Biometric Vital Signs</h2>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              id="health-reset-trackers-btn"
+              onClick={handleResetVitals}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold border border-red-200/70 transition-all shadow-xs"
+              title="Reset all vitals and tracker metrics"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset Trackers</span>
+            </button>
             <button
               id="health-scan-biometric-btn"
               onClick={() => setShowBioScanner(!showBioScanner)}
@@ -440,11 +589,15 @@ export const HealthReports: React.FC = () => {
             </div>
 
             {/* Live BMI preview */}
-            {vitalsForm.heightCm && vitalsForm.weightKg && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs font-bold text-emerald-800">
-                📊 Calculated BMI: <span className="text-emerald-700 font-black">{bmi}</span> kg/m² — {bmiInfo.label}
-              </div>
-            )}
+            {Number(vitalsForm.heightCm) > 0 && Number(vitalsForm.weightKg) > 0 && (() => {
+              const liveBmi = Math.round((Number(vitalsForm.weightKg) / Math.pow(Number(vitalsForm.heightCm) / 100, 2)) * 10) / 10;
+              const liveBmiInfo = getBMILabel(liveBmi);
+              return (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs font-bold text-emerald-800">
+                  📊 Calculated BMI: <span className="text-emerald-700 font-black">{liveBmi}</span> kg/m² — {liveBmiInfo.label}
+                </div>
+              );
+            })()}
           </div>
         )}
 

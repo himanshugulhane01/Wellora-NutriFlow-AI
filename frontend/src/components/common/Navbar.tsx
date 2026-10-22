@@ -52,6 +52,7 @@ export const Navbar: React.FC = () => {
     'smart-grocery': { label: 'Smart Grocery', icon: Store },
     'doctor-consultation': { label: 'Doctor Telehealth', icon: Stethoscope },
     'admin-dashboard': { label: 'Admin Dashboard', icon: LayoutDashboard },
+    'admin-portal': { label: 'Admin Portal', icon: LayoutDashboard },
     'restaurant-dashboard': { label: 'Restaurant Hub', icon: UtensilsCrossed },
     'doctor-dashboard': { label: 'Doctor Portal', icon: UserCheck },
     'gold-facilities': { label: 'Gold Facilities', icon: Sparkles },
@@ -156,10 +157,16 @@ export const Navbar: React.FC = () => {
             className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-500/10 via-emerald-400/5 to-transparent border border-emerald-500/30 hover:border-emerald-500 transition-all text-xs font-bold text-emerald-700 dark:text-emerald-400"
           >
             <Activity className="w-4 h-4 text-emerald-500" />
-            <span>Health Score:</span>
-            <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[11px] font-black">
-              {healthProfile.healthScore}
-            </span>
+            {(healthProfile.healthScore || 0) > 0 ? (
+              <>
+                <span>Health Score:</span>
+                <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[11px] font-black">
+                  {healthProfile.healthScore}
+                </span>
+              </>
+            ) : (
+              <span>Add Health Report</span>
+            )}
           </button>
 
           {/* Wellora AI Chat Launcher */}
@@ -199,14 +206,7 @@ export const Navbar: React.FC = () => {
             )}
           </button>
 
-          {/* Dark / Light Toggle */}
-          <button
-            onClick={() => setIsDarkMode((prev) => !prev)}
-            className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            aria-label="Toggle Theme"
-          >
-            {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-600" />}
-          </button>
+
 
           {/* Authentication State Button */}
           {currentUser ? (

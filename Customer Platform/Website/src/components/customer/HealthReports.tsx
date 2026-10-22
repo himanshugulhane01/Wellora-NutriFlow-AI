@@ -77,6 +77,7 @@ const getVitalStatus = (
 };
 
 const getBMILabel = (bmi: number) => {
+  if (!bmi || bmi <= 0) return { label: 'Not Entered', color: 'text-slate-400', bg: 'bg-slate-100' };
   if (bmi < 18.5) return { label: 'Underweight', color: 'text-blue-500', bg: 'bg-blue-500/10' };
   if (bmi < 25) return { label: 'Normal', color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
   if (bmi < 30) return { label: 'Overweight', color: 'text-amber-500', bg: 'bg-amber-500/10' };
@@ -438,14 +439,20 @@ export const HealthReports: React.FC = () => {
             <span className={`px-3 py-1 rounded-full text-xs font-bold ${bmiInfo.bg} ${bmiInfo.color}`}>{bmiInfo.label}</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-black text-slate-900 dark:text-white font-['Outfit']">{healthProfile.bmi}</span>
-            <span className="text-xs text-slate-400 font-medium">kg/m²</span>
+            <span className="text-3xl font-black text-slate-900 dark:text-white font-['Outfit']">{healthProfile.bmi && healthProfile.bmi > 0 ? healthProfile.bmi : '0'}</span>
+            {healthProfile.bmi && healthProfile.bmi > 0 ? <span className="text-xs text-slate-400 font-medium">kg/m²</span> : null}
           </div>
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden flex">
-            <div className="h-full bg-blue-500" style={{ width: '18.5%' }} />
-            <div className="h-full bg-emerald-500" style={{ width: '25%' }} />
-            <div className="h-full bg-amber-500" style={{ width: '25%' }} />
-            <div className="h-full bg-red-500" style={{ width: '31.5%' }} />
+            {healthProfile.bmi && healthProfile.bmi > 0 ? (
+              <>
+                <div className="h-full bg-blue-500" style={{ width: '18.5%' }} />
+                <div className="h-full bg-emerald-500" style={{ width: '25%' }} />
+                <div className="h-full bg-amber-500" style={{ width: '25%' }} />
+                <div className="h-full bg-red-500" style={{ width: '31.5%' }} />
+              </>
+            ) : (
+              <div className="h-full bg-slate-200 dark:bg-slate-700 w-full" />
+            )}
           </div>
         </div>
 

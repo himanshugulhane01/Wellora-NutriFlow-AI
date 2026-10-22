@@ -39,21 +39,21 @@ export const CategoryGrid: React.FC = () => {
   };
 
   return (
-    <section className="py-24 relative">
+    <section id="healthy-meals" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
           <div>
-            <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
               Personalized Medical Goals
             </span>
-            <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight font-['Outfit'] mt-3">
+            <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight font-['Outfit'] mt-3">
               Explore Targeted Nutrition
             </h2>
           </div>
           <button
-            onClick={() => { setAuthModalDefaultMode('signup'); setIsAuthModalOpen(true); }}
-            className="flex items-center gap-2 text-xs font-black text-emerald-700 dark:text-emerald-400 hover:gap-3 transition-all"
+            onClick={() => { setAuthModalDefaultMode('login'); setIsAuthModalOpen(true); }}
+            className="flex items-center gap-2 text-xs font-black text-emerald-700 hover:gap-3 transition-all"
           >
             <span>View All Health Categories</span>
             <ArrowRight className="w-4.5 h-4.5 text-amber-500" />
@@ -67,20 +67,20 @@ export const CategoryGrid: React.FC = () => {
               <button
                 key={i}
                 onClick={() => handleCategoryClick(cat.name)}
-                className="group relative p-6 rounded-3xl bg-white/70 dark:bg-[#091F17]/70 backdrop-blur-md border border-slate-200/80 dark:border-emerald-500/10 shadow-sm hover:shadow-xl hover:border-emerald-500/30 dark:hover:border-emerald-500/30 hover:-translate-y-1 transition-all text-left flex flex-col justify-between min-h-[160px]"
+                className="group relative p-6 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:border-emerald-500/30 hover:-translate-y-1 transition-all text-left flex flex-col justify-between min-h-[160px]"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${cat.color} flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform`}>
                     <IconComponent className="w-5 h-5" />
                   </div>
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-emerald-950 group-hover:bg-amber-500 transition-colors"></span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 group-hover:bg-amber-500 transition-colors"></span>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors font-['Outfit']">
+                  <h3 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors font-['Outfit']">
                     {cat.name}
                   </h3>
-                  <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                  <p className="text-[11px] font-bold text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                     {cat.desc}
                   </p>
                 </div>

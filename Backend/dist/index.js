@@ -18,13 +18,15 @@ const grocery_routes_1 = __importDefault(require("./routes/grocery.routes"));
 const doctors_routes_1 = __importDefault(require("./routes/doctors.routes"));
 const ai_routes_1 = __importDefault(require("./routes/ai.routes"));
 const meal_plans_routes_1 = __importDefault(require("./routes/meal-plans.routes"));
+const meals_recommendation_routes_1 = __importDefault(require("./routes/meals-recommendation.routes"));
+const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
 const error_middleware_1 = require("./middleware/error.middleware");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
 // ─── Security & Middleware ────────────────────────────────────────────────────
 app.use((0, helmet_1.default)({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use((0, cors_1.default)({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : true,
     credentials: true,
 }));
 app.use(express_1.default.json({ limit: '10mb' }));
@@ -46,11 +48,13 @@ app.use('/api/grocery', grocery_routes_1.default);
 app.use('/api/doctors', doctors_routes_1.default);
 app.use('/api/ai', ai_routes_1.default);
 app.use('/api/meal-plans', meal_plans_routes_1.default);
+app.use('/api/meals', meals_recommendation_routes_1.default);
+app.use('/api/payments', payment_routes_1.default);
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
     res.json({
         success: true,
-        message: '🥗 NutriFlow AI Backend is running',
+        message: '🥗 Wellora Backend is running',
         version: '1.0.0',
         timestamp: new Date().toISOString(),
     });
@@ -63,7 +67,7 @@ app.use((_req, res) => {
 app.use(error_middleware_1.errorHandler);
 // ─── Start Server ─────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-    console.log(`\n🥗 NutriFlow AI Backend`);
+    console.log(`\n🥗 Wellora Backend`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     console.log(`🚀 Server running on: http://localhost:${PORT}`);
     console.log(`📊 Health check:      http://localhost:${PORT}/api/health`);

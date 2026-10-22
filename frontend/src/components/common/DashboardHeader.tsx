@@ -65,136 +65,86 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMobileMenuOp
 
   return (
     <header
-      className="sticky top-0 z-40 bg-white/95 dark:bg-[#091F17]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-emerald-500/10 shadow-sm"
+      className="sticky top-0 z-40 bg-white backdrop-blur-md border-b border-[#e4f0e8] shadow-sm"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
-      <div className="h-16 px-4 lg:px-6 flex items-center justify-between">
+      <div className="h-14 px-4 lg:px-6 flex items-center justify-between">
 
-      {/* Left: Mobile Menu + Page Title & Interactive Location */}
+      {/* Left: Mobile Menu + Location Pill */}
       <div className="flex items-center gap-3">
         <button
           onClick={onMobileMenuOpen}
-          className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-emerald-950/40 text-slate-700 dark:text-emerald-400"
+          className="lg:hidden p-2 rounded-xl bg-green-50 text-green-600"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-4 h-4" />
         </button>
 
-        <div>
-          <h1 className="font-extrabold text-sm text-slate-900 dark:text-white font-['Outfit']">
-            {pageTitle}
-          </h1>
-          {currentUser && (
-            <button
-              onClick={() => setShowLocModal(true)}
-              className="text-[10px] text-slate-400 dark:text-slate-400 hidden sm:flex items-center gap-1 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors font-medium border border-transparent hover:border-slate-200 dark:hover:border-emerald-800/40 px-1.5 py-0.5 rounded-lg"
-            >
-              <MapPin className="w-2.5 h-2.5 text-emerald-500" />
-              <span>{userLocation}</span>
-            </button>
-          )}
-        </div>
+        {/* Location Dropdown Pill as in screenshot */}
+        <button
+          onClick={() => setShowLocModal(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f4fbf6] border border-[#d6ecdd] text-xs font-semibold text-[#1a2e1f] hover:bg-green-50 hover:border-green-300 transition-all shadow-xs"
+        >
+          <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="font-bold text-[11px] text-[#1a2e1f]">{userLocation || 'Tech District, Block 4B'}</span>
+          <span className="text-[10px] text-gray-400">⌄</span>
+        </button>
       </div>
 
       {/* Right: Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
 
-        {/* Health Score Chip */}
-        {currentUser?.role === 'CUSTOMER' && (
-          <button
-            onClick={() => openProfileModal('vitals')}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/30 hover:border-emerald-500 transition-all text-xs font-bold text-emerald-700 dark:text-emerald-400"
-          >
-            <Activity className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="hidden sm:inline">Health Score:</span>
-            <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[10px] font-black">
-              {healthProfile.healthScore}
-            </span>
-          </button>
-        )}
+        {/* Add Health Report Pill Button */}
+        <button
+          onClick={() => openProfileModal('vitals')}
+          className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-[#b8dfc4] hover:bg-green-50/50 hover:border-green-500 transition-all text-xs font-bold text-emerald-700 shadow-xs"
+        >
+          <span className="text-emerald-600 text-sm font-black leading-none">+</span>
+          <span className="text-[11px] font-bold text-emerald-800">Add Health Report</span>
+        </button>
 
-        {/* Active Order Tracker */}
-        {activeOrder && (
-          <button
-            onClick={() => setIsOrderTrackingOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400 text-xs font-bold hover:bg-orange-500/20 transition-all"
-          >
-            <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
-            <span className="hidden sm:inline text-[11px]">Order #{activeOrder.id.slice(-6)}</span>
-            <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded-md font-extrabold">
-              {activeOrder.etaMinutes}m
-            </span>
-          </button>
-        )}
-
-        {/* AI Coach */}
+        {/* AI Coach filled pill button */}
         <button
           onClick={() => setIsAIModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-xs shadow-lg shadow-blue-500/25 hover:opacity-95 hover:scale-105 transition-all"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#054a39] hover:bg-[#033c2e] text-white font-bold text-xs shadow-sm transition-all"
         >
-          <Bot className="w-4 h-4" />
-          <span className="hidden sm:inline">AI Coach</span>
+          <Bot className="w-3.5 h-3.5 text-emerald-300" />
+          <span className="text-[11px]">AI Coach</span>
         </button>
 
-        {/* Notifications */}
+        {/* Notifications with red dot */}
         <button
           onClick={() => setIsNotificationsOpen(prev => !prev)}
-          className="relative p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="relative p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
           aria-label="Notifications"
         >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+          <Bell className="w-4 h-4 text-gray-600" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
         </button>
 
-        {/* Cart */}
+        {/* Messages / Mail Icon */}
         <button
-          onClick={() => setIsCartOpen(true)}
-          className="relative p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-          aria-label="View Cart"
+          onClick={() => setIsAIModalOpen(true)}
+          className="p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
+          aria-label="Messages"
+          title="Messages"
         >
-          <ShoppingBag className="w-5 h-5" />
-          {totalCartCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-extrabold flex items-center justify-center shadow-md">
-              {totalCartCount}
-            </span>
-          )}
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
         </button>
 
-        {/* Dark Mode Toggle */}
-        <button
-          onClick={() => setIsDarkMode((prev) => !prev)}
-          className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-          aria-label="Toggle Theme"
-        >
-          {isDarkMode
-            ? <Sun className="w-5 h-5 text-amber-400" />
-            : <Moon className="w-5 h-5 text-slate-600" />}
-        </button>
-
-        {/* User Avatar & Logout */}
+        {/* User Avatar Circle (H with green indicator dot) */}
         {currentUser && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 pl-1">
             <button
               onClick={() => openProfileModal('account')}
               className="relative group"
               title={currentUser.name}
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 p-[2.5px] shadow-lg shadow-emerald-500/25 group-hover:shadow-emerald-500/40 group-hover:scale-110 transition-all duration-300">
-                <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center">
-                  <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 uppercase">
-                    {currentUser.name.split(' ').length > 1
-                      ? `${currentUser.name.split(' ')[0][0]}${currentUser.name.split(' ')[1][0]}`
-                      : currentUser.name[0]}
-                  </span>
-                </div>
+              <div className="w-8 h-8 rounded-full bg-[#054a39] flex items-center justify-center text-white text-xs font-black shadow-sm">
+                <span>{currentUser.name ? currentUser.name[0].toUpperCase() : 'H'}</span>
               </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-sm" />
-            </button>
-            <button
-              onClick={logout}
-              className="hidden md:flex p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs" />
             </button>
           </div>
         )}

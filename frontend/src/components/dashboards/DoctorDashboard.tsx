@@ -25,22 +25,22 @@ export const DoctorDashboard: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Banner */}
-      <div className="p-8 rounded-3xl bg-slate-900 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-bold border border-blue-500/30">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-700 text-xs font-bold border border-blue-500/20">
             <Stethoscope className="w-3.5 h-3.5" />
             <span>Clinical Endocrinology & Dietetics Portal</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold font-['Outfit']">
+          <h1 className="text-3xl sm:text-4xl font-extrabold font-['Outfit'] text-slate-900">
             Dr. Kavita Subramanian • Telehealth Suite
           </h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-slate-600">
             Patient roster, real-time continuous glucose monitor logs, and AI protocol generation.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+          <span className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
             3 Appointments Scheduled Today
           </span>
         </div>

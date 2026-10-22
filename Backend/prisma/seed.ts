@@ -27,7 +27,7 @@ async function main() {
   await prisma.user.deleteMany();
 
   // ─── Demo Users ───────────────────────────────────────────────────────────
-  const hashedPw = await bcrypt.hash('password123', 12);
+  const hashedPw = await bcrypt.hash('Himanshu@01', 12);
 
   const customer = await prisma.user.create({
     data: {
@@ -53,11 +53,23 @@ async function main() {
     },
   });
 
+  // Admin Users
+  await prisma.user.create({
+    data: {
+      name: 'Wellora Admin',
+      email: 'wellora1111@gmail.com',
+      password: hashedPw, // Himanshu@01
+      role: 'ADMIN',
+    },
+  });
+
+  const hashedPwDefault = await bcrypt.hash('password123', 12);
+
   await prisma.user.create({
     data: {
       name: 'Admin',
       email: 'admin@wellora.ai',
-      password: hashedPw,
+      password: hashedPwDefault, // password123
       role: 'ADMIN',
     },
   });
@@ -1201,7 +1213,7 @@ async function main() {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('Demo Accounts:');
   console.log('  Customer: priya@wellora.ai / password123');
-  console.log('  Admin:    admin@wellora.ai / password123');
+  console.log('  Admin:    wellora1111@gmail.com / Himanshu@01');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 }
 

@@ -1,0 +1,13 @@
+{
+  "name": "wellora-fullstack",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Wellora Full-Stack Nutrition & Clinical Intelligence Platform",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File .\\start.ps1",
+    "start": "powershell -ExecutionPolicy Bypass -File .\\start.ps1",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "admin": "powershell -Command \"Start-Process 'http://localhost:5173/admin'\""
+  }
+}

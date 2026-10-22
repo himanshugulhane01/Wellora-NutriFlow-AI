@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { AppError } from '../middleware/error.middleware';
+import { sendOtpEmail, generate6DigitOtp } from '../services/email.service';
 
 const router = Router();
 
@@ -53,15 +54,16 @@ router.post('/register', async (req, res: Response, next) => {
       select: { id: true, name: true, email: true, role: true, createdAt: true },
     });
 
-    // Create default health profile for customers
+    // Create default health profile for customers (starts at 0 until user enters their report)
     if (user.role === 'CUSTOMER') {
       await prisma.healthProfile.create({
         data: {
           userId: user.id,
           age: 25,
-          heightCm: 165,
-          weightKg: 65,
-          targetWeightKg: 60,
+          heightCm: 0,
+          weightKg: 0,
+          targetWeightKg: 0,
+          bmi: 0,
           fitnessGoal: 'General Wellness',
           dailyCalorieTarget: 1800,
           diseases: '[]',
@@ -125,7 +127,83 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response, next) =>
   }
 });
 
-// POST /api/auth/send-otp
+// In-memory Email OTP store (email -> { otp, expiresAt })
+const emailOtpStore = new Map<string, { otp: string; expiresAt: number }>();
+
+// POST /api/auth/send-email-otp
+router.post('/send-email-otp', async (req, res: Response, next) => {
+  try {
+    const schema = z.object({
+      email: z.string().email('Please provide a valid email address'),
+      name: z.string().optional(),
+    });
+    const { email, name } = schema.parse(req.body);
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Generate strict 6-digit OTP
+    const otp = generate6DigitOtp();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+
+    emailOtpStore.set(normalizedEmail, { otp, expiresAt });
+
+    // Send via Nodemailer SMTP
+    const emailResult = await sendOtpEmail(normalizedEmail, otp, name || 'User');
+
+    res.json({
+      success: true,
+      message: emailResult.sent
+        ? `A 6-digit verification code has been sent to ${normalizedEmail}`
+        : `Verification code generated for ${normalizedEmail}`,
+      data: {
+        email: normalizedEmail,
+        expiresInSeconds: 300,
+        simulated: emailResult.simulated,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/verify-email-otp
+router.post('/verify-email-otp', async (req, res: Response, next) => {
+  try {
+    const schema = z.object({
+      email: z.string().email(),
+      otp: z.string().length(6, 'OTP must be exactly 6 digits'),
+    });
+    const { email, otp } = schema.parse(req.body);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const stored = emailOtpStore.get(normalizedEmail);
+
+    if (!stored) {
+      throw new AppError('No verification code requested for this email. Please request an OTP first.', 400);
+    }
+
+    if (Date.now() > stored.expiresAt) {
+      emailOtpStore.delete(normalizedEmail);
+      throw new AppError('Verification code has expired. Please request a new OTP.', 400);
+    }
+
+    if (stored.otp !== otp.trim()) {
+      throw new AppError('Invalid verification code. Please check your email and try again.', 400);
+    }
+
+    // Successfully verified, clean up store
+    emailOtpStore.delete(normalizedEmail);
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully!',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/send-otp (Mobile SMS OTP)
 router.post('/send-otp', async (req, res: Response, next) => {
   try {
     const schema = z.object({ phone: z.string().min(10) });
@@ -135,8 +213,8 @@ router.post('/send-otp', async (req, res: Response, next) => {
     const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
     const formattedPhone = `+91 ${cleanPhone}`;
 
-    // Generate 6-digit random OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate strict 6-digit random OTP
+    const otp = generate6DigitOtp();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
 
     otpStore.set(phone, { otp, expiresAt });
@@ -145,7 +223,7 @@ router.post('/send-otp', async (req, res: Response, next) => {
 
     // Attempt Fast2SMS or Twilio real SMS API call if configured
     const fast2smsKey = process.env.FAST2SMS_API_KEY;
-    if (fast2smsKey) {
+    if (fast2smsKey && fast2smsKey !== 'YOUR_FAST2SMS_API_KEY_HERE') {
       try {
         await fetch(`https://www.fast2sms.com/dev/bulkV2?authorization=${fast2smsKey}&route=otp&variables_values=${otp}&numbers=${cleanPhone}`);
         console.log(`📱 [REAL SMS DISPATCHED] Fast2SMS OTP sent to ${formattedPhone}`);
@@ -171,7 +249,7 @@ router.post('/send-otp', async (req, res: Response, next) => {
   }
 });
 
-// POST /api/auth/verify-otp
+// POST /api/auth/verify-otp (Mobile SMS OTP)
 router.post('/verify-otp', async (req, res: Response, next) => {
   try {
     const schema = z.object({
@@ -180,13 +258,18 @@ router.post('/verify-otp', async (req, res: Response, next) => {
     });
     const { phone, otp } = schema.parse(req.body);
 
-    const stored = otpStore.get(phone);
+    const cleanPhone = phone.replace(/[^0-9]/g, '').slice(-10);
+    const formattedPhone = `+91 ${cleanPhone}`;
+
+    const stored = otpStore.get(phone) || otpStore.get(formattedPhone) || otpStore.get(cleanPhone);
     if (!stored) {
       throw new AppError('No OTP request found for this phone number. Please request an OTP first.', 400);
     }
 
     if (Date.now() > stored.expiresAt) {
       otpStore.delete(phone);
+      otpStore.delete(formattedPhone);
+      otpStore.delete(cleanPhone);
       throw new AppError('OTP expired. Please request a new OTP.', 400);
     }
 
@@ -196,10 +279,124 @@ router.post('/verify-otp', async (req, res: Response, next) => {
 
     // Mark as verified and remove from store
     otpStore.delete(phone);
+    otpStore.delete(formattedPhone);
+    otpStore.delete(cleanPhone);
 
     res.json({
       success: true,
       message: 'Mobile number verified successfully!',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/auth/admin/overview — comprehensive platform users & operations data for Admin
+router.get('/admin/overview', authenticate, async (req: AuthRequest, res: Response, next) => {
+  try {
+    if (req.user?.role !== 'ADMIN') {
+      throw new AppError('Access denied. Administrator privileges required.', 403);
+    }
+
+    const [users, totalOrders, recentOrders, totalRestaurants, totalDoctors, totalMeals] = await Promise.all([
+      prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+          createdAt: true,
+          healthProfile: {
+            select: {
+              fitnessGoal: true,
+              diseases: true,
+              bmi: true,
+              age: true,
+              weightKg: true,
+              heightCm: true,
+              bloodPressureSystolic: true,
+              bloodPressureDiastolic: true,
+              bloodSugarFasting: true,
+              cholesterolTotal: true,
+              heartRateBpm: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.order.count(),
+      prisma.order.findMany({
+        take: 10,
+        select: {
+          id: true,
+          status: true,
+          totalAmount: true,
+          placedAt: true,
+          user: { select: { name: true, email: true } },
+          restaurant: { select: { name: true } },
+        },
+        orderBy: { placedAt: 'desc' },
+      }),
+      prisma.restaurant.count(),
+      prisma.doctor.count(),
+      prisma.meal.count(),
+    ]);
+
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    res.json({
+      success: true,
+      data: {
+        stats: {
+          totalUsers: users.length,
+          totalOrders,
+          totalRestaurants,
+          totalDoctors,
+          totalMeals,
+          activeSubscribers: Math.max(users.filter(u => u.role === 'CUSTOMER').length, 1),
+        },
+        users,
+        recentOrders,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/auth/admin/users/:id/role — Change user role
+router.patch('/admin/users/:id/role', authenticate, async (req: AuthRequest, res: Response, next) => {
+  try {
+    if (req.user?.role !== 'ADMIN') {
+      throw new AppError('Access denied. Administrator privileges required.', 403);
+    }
+
+    const { role } = req.body as { role: string };
+    const validRoles = ['CUSTOMER', 'DOCTOR', 'RESTAURANT_OWNER', 'ADMIN'];
+    if (!role || !validRoles.includes(role)) {
+      throw new AppError('Invalid role specified', 400);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.params.id as string },
+      data: { role: role as any },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      data: updatedUser,
+      message: `User role successfully updated to ${role}`,
     });
   } catch (err) {
     next(err);

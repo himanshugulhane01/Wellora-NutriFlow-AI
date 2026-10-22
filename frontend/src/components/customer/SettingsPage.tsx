@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
-  User, Bell, Target, Moon, Shield, Fingerprint, LogOut, Trash2,
+  User, Bell, Target, Moon, Sun, Shield, Fingerprint, LogOut, Trash2,
   ChevronRight, Save, Check, Lock, Eye, ShieldAlert,
   Smartphone, Activity, Download
 } from 'lucide-react';
@@ -453,46 +453,22 @@ export const SettingsPage: React.FC = () => {
 
                 <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-slate-900 dark:bg-slate-700 text-amber-400 flex items-center justify-center shadow-sm">
-                      <Moon className="w-5 h-5" />
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm">
+                      <Sun className="w-5 h-5 text-amber-500" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-900 dark:text-white">Dark Mode</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Reduce eye strain with dark background and vibrant green accents</p>
+                      <p className="text-xs font-bold text-slate-900">App Theme</p>
+                      <p className="text-[10px] text-slate-500">Light Clean Theme is enabled by default across Wellora</p>
                     </div>
                   </div>
-                  <Toggle
-                    id="settings-dark-mode-toggle"
-                    checked={isDarkMode}
-                    onChange={() => setIsDarkMode((prev: boolean) => !prev)}
-                  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {['Light', 'Dark'].map(theme => {
-                    const isSelected = (theme === 'Dark' && isDarkMode) || (theme === 'Light' && !isDarkMode);
-                    return (
-                      <button
-                        key={theme}
-                        id={`settings-theme-${theme.toLowerCase()}`}
-                        className={`p-5 rounded-2xl border text-left transition-all ${
-                          isSelected
-                            ? 'border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 ring-2 ring-emerald-500/20 shadow-sm'
-                            : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
-                        }`}
-                        onClick={() => {
-                          if (theme === 'Dark') setIsDarkMode(true);
-                          else if (theme === 'Light') setIsDarkMode(false);
-                        }}
-                      >
-                        <div className="text-2xl mb-2">{theme === 'Light' ? '☀️' : '🌙'}</div>
-                        <p className="text-sm font-extrabold text-slate-900 dark:text-white font-['Outfit']">{theme} Theme</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {theme === 'Light' ? 'Clean bright background' : 'Sleek dark background'}
-                        </p>
-                      </button>
-                    );
-                  })}
+                <div className="p-4 rounded-2xl border border-emerald-500 bg-emerald-50/50 text-left">
+                  <div className="text-2xl mb-1">☀️</div>
+                  <p className="text-sm font-extrabold text-slate-900 font-['Outfit']">Light Clean Theme</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Crisp, vibrant, health-focused design palette
+                  </p>
                 </div>
               </div>
             )}

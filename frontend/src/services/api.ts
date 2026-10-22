@@ -13,6 +13,8 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
   };
 
   // Attach JWT token if available
@@ -22,13 +24,22 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     method,
     headers,
+    cache: 'no-store',
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await response.json();
+  let data: any = {};
+  const text = await response.text();
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data.message || 'An error occurred');
+    throw new Error(data.message || `Request failed with status ${response.status}`);
   }
 
   return data;

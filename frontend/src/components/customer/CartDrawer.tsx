@@ -3,7 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { paymentService } from '../../services';
 import {
   X, Trash2, ShoppingBag, ArrowRight, MapPin, CreditCard,
-  QrCode, Wallet, Banknote, Tag, Gift, AlertCircle, Bot
+  QrCode, Wallet, Banknote, Tag, Gift, AlertCircle, Bot,
+  UserCheck, ShieldAlert
 } from 'lucide-react';
 import { AIOrderAnalysisModal } from './AIOrderAnalysisModal';
 
@@ -23,7 +24,16 @@ const AVAILABLE_COUPONS = [
 ];
 
 export const CartDrawer: React.FC = () => {
-  const { isCartOpen, setIsCartOpen, cart, removeFromCart, placeOrder, currentUser } = useApp();
+  const {
+    isCartOpen,
+    setIsCartOpen,
+    cart,
+    removeFromCart,
+    placeOrder,
+    currentUser,
+    healthProfile,
+    openProfileModal,
+  } = useApp();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('razorpay');
   const [couponCode, setCouponCode] = useState('');
@@ -32,10 +42,32 @@ export const CartDrawer: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAIAnalysisModal, setShowAIAnalysisModal] = useState(false);
-
-  const referralCreditsAvailable = 150; // ₹150 referral bonus credits
+  const [showProfileRequiredAlert, setShowProfileRequiredAlert] = useState(false);
 
   if (!isCartOpen) return null;
+
+  // Check if user has filled their Personal Details Form:
+  // Age, Sex (gender), Height, Weight, Activity Level, Goal, Diet Type
+  const isPersonalDetailsComplete = !!(
+    healthProfile.age && healthProfile.age > 0 &&
+    healthProfile.gender &&
+    healthProfile.heightCm && healthProfile.heightCm > 0 &&
+    healthProfile.weightKg && healthProfile.weightKg > 0 &&
+    healthProfile.activityLevel &&
+    healthProfile.fitnessGoal &&
+    (healthProfile.dietaryPreference || currentUser?.dietaryPreference)
+  );
+
+  const handleStartCheckout = () => {
+    // If user has not completed personal details form, show popup alert
+    if (!isPersonalDetailsComplete) {
+      setShowProfileRequiredAlert(true);
+      return;
+    }
+    setShowAIAnalysisModal(true);
+  };
+
+  const referralCreditsAvailable = 150; // ₹150 referral bonus credits
 
   const subtotal = cart.reduce((acc, item) => acc + item.meal.price * item.quantity, 0);
   const deliveryFee = subtotal > 500 ? 0 : 49;
@@ -436,7 +468,7 @@ export const CartDrawer: React.FC = () => {
 
             {/* Submit Checkout */}
             <button
-              onClick={() => setShowAIAnalysisModal(true)}
+              onClick={handleStartCheckout}
               disabled={isProcessing}
               className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-600 hover:from-emerald-500 hover:to-emerald-400 text-white font-extrabold text-sm shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] disabled:opacity-60"
             >
@@ -459,6 +491,52 @@ export const CartDrawer: React.FC = () => {
         )}
 
       </div>
+
+      {/* POPUP ALERT: Personal Details Required before placing order */}
+      {showProfileRequiredAlert && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-5 text-center">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/15 border border-amber-500/30 text-amber-500 flex items-center justify-center mx-auto shadow-inner">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                Personal Details Required
+              </span>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white font-['Outfit']">
+                Please Complete Your Personal Details
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Before proceeding with your food order, please complete your personal details (Age, Sex, Height, Weight, Activity Level, Fitness Goal, Diet Type, and Allergies) so Wellora AI can verify allergy safety and dietary requirements.
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setShowProfileRequiredAlert(false);
+                  setShowAIAnalysisModal(true);
+                }}
+                className="flex-1 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 transition-colors"
+              >
+                Maybe Later
+              </button>
+              <button
+                onClick={() => {
+                  setShowProfileRequiredAlert(false);
+                  setIsCartOpen(false);
+                  openProfileModal('account');
+                }}
+                className="flex-1 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition-all"
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>Fill Details Now</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Order Health Analysis Popup */}
       <AIOrderAnalysisModal

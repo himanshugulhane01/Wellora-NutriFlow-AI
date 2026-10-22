@@ -50,22 +50,22 @@ export const FeatureSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-24 relative bg-slate-900 text-white overflow-hidden">
+    <section className="py-24 relative bg-slate-50 border-y border-slate-200/80 overflow-hidden">
       
       {/* Glow Effects */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-20">
-          <span className="px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+          <span className="px-3.5 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
             Powered by NutriMind™ Deep Neural Engine
           </span>
-          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Outfit']">
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Outfit'] text-slate-900">
             Autonomous Health & Nutrition Features
           </h2>
-          <p className="text-slate-400 text-base">
+          <p className="text-slate-600 text-base">
             Not just delivery — an intelligent health operating system designed around your longevity.
           </p>
         </div>
@@ -76,27 +76,27 @@ export const FeatureSection: React.FC = () => {
             return (
               <div
                 key={i}
-                className="p-8 rounded-3xl bg-slate-800/60 border border-slate-700/60 hover:border-emerald-500/60 hover:bg-slate-800/90 transition-all duration-300 group flex flex-col justify-between"
+                className="p-8 rounded-3xl bg-white border border-slate-200 shadow-sm hover:border-emerald-500/50 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-6">
-                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-lg shadow-emerald-500/10">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-md shadow-emerald-500/10">
                       <IconComp className="w-7 h-7" />
                     </div>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-slate-700 text-slate-300 border border-slate-600">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-600 border border-slate-200">
                       {feat.badge}
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-bold text-white mb-3 font-['Outfit']">
+                  <h3 className="text-xl font-bold text-slate-900 mb-3 font-['Outfit']">
                     {feat.title}
                   </h3>
-                  <p className="text-sm text-slate-400 leading-relaxed">
+                  <p className="text-sm text-slate-600 leading-relaxed">
                     {feat.desc}
                   </p>
                 </div>
 
-                <div className="mt-8 pt-4 border-t border-slate-700/50 flex items-center gap-2 text-xs font-semibold text-emerald-400">
+                <div className="mt-8 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-bold text-emerald-600">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Integrated into Wellora Ecosystem</span>
                 </div>

@@ -139,14 +139,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   ]);
 
-  // Sync dark class on html root
+  // Ensure website is always rendered in light theme
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('wellora_theme', 'light');
+  }, []);
 
   // ─── SYNC USER DATA FROM BACKEND ──────────────────────────────────────────
   const syncUserData = useCallback(async () => {
